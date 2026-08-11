@@ -3,16 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --bg: #15171C;
-  --surface: #1F232B;
-  --xp: #7CFF6B;
+  --bg: #0D0D0D;
+  --surface: #1A1A1A;
+  --xp: #A8FF00;
 }
 
 * { box-sizing: border-box; }
 
 body {
   background-color: var(--bg);
-  color: #EDEFF2;
+  color: #EDEDED;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -20,7 +20,7 @@ body {
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px #1F232B inset;
-  -webkit-text-fill-color: #EDEFF2;
-  caret-color: #EDEFF2;
+  -webkit-box-shadow: 0 0 0px 1000px #1A1A1A inset;
+  -webkit-text-fill-color: #EDEDED;
+  caret-color: #EDEDED;
 }
