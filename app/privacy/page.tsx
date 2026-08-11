@@ -4,22 +4,22 @@ import Link from 'next/link';
 // stays lightweight and renders fine for logged-out visitors and app-store
 // review crawlers, without pulling in the full app shell.
 const C = {
-  bg: '#0D0F14',
-  surface: '#161A22',
-  border: '#2A3140',
-  text: '#F2F4F8',
-  muted: '#8A93A8',
-  xp: '#39FF14',
+  bg: '#0D0D0D',
+  surface: '#1A1A1A',
+  border: '#444444',
+  text: '#EDEDED',
+  muted: '#9A9A9A',
+  xp: '#A8FF00',
 };
 
 export const metadata = {
-  title: 'Privacy Policy — RPG Fitness',
+  title: 'Privacy Policy — WODXP',
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="text-lg font-bold" style={{ color: C.text, fontFamily: "'Space Grotesk', sans-serif" }}>{title}</h2>
+      <h2 className="text-lg font-bold" style={{ color: C.text, fontFamily: "'Oswald', sans-serif" }}>{title}</h2>
       <div className="mt-2 space-y-3 text-sm leading-relaxed" style={{ color: C.muted }}>
         {children}
       </div>
@@ -32,20 +32,20 @@ export default function PrivacyPage() {
     <div className="min-h-screen w-full px-5 py-10" style={{ backgroundColor: C.bg, color: C.text, fontFamily: "'Inter', sans-serif" }}>
       <div className="mx-auto max-w-2xl">
         <Link href="/" className="text-xs font-medium uppercase tracking-wider" style={{ color: C.xp }}>
-          ← Back to RPG Fitness
+          ← Back to WODXP
         </Link>
 
-        <h1 className="mt-4 text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Privacy Policy</h1>
+        <h1 className="mt-4 text-3xl font-bold" style={{ fontFamily: "'Oswald', sans-serif" }}>Privacy Policy</h1>
         <p className="mt-1 text-sm" style={{ color: C.muted }}>Last updated: August 11, 2026</p>
 
         <p className="mt-6 text-sm leading-relaxed" style={{ color: C.muted }}>
-          This Privacy Policy explains how RPG Fitness (&quot;the App,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, stores, and
+          This Privacy Policy explains how WODXP (&quot;the App,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, stores, and
           protects your information when you use our mobile and web application.
         </p>
 
         <Section title="1. Who We Are">
           <p>
-            RPG Fitness is developed and operated by Pontus Melin, based in Sweden. If you have questions about this
+            WODXP is developed and operated by Pontus Melin, based in Sweden. If you have questions about this
             policy or your data, you can contact us at:
           </p>
           <p style={{ color: C.text }}>Email: pontus.melin@gmail.com</p>
