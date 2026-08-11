@@ -12,7 +12,7 @@ import {
   CATEGORY_ICONS, CATEGORY_LABELS, EQUIPMENT_LABELS, EQUIPMENT_COLORS,
   pickPrimaryEquipment, NEON, neonIconStyles, type ExerciseCategory, type Equipment,
 } from './MovementIcons';
-import { ExerciseIllustration, illustrationStyles, type Gender } from './ExerciseIllustrations';
+import { ExerciseIllustration, illustrationStyles } from './ExerciseIllustrations';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface User { id: string; email: string; username: string; }
@@ -26,7 +26,7 @@ interface Exercise {
   id: string; name: string; category: ExerciseCategory; difficulty: string;
   equipment: string[]; primary_attribute: string; unlock_level: number;
   xp_value: number; default_sets: number; default_reps: number;
-  default_weight_kg: number; illustration_url?: string;
+  default_weight_kg: number; illustration_url?: string; instructions?: string;
 }
 interface Props { user: User; stats: UserStats; exercises: Exercise[]; }
 
@@ -354,31 +354,30 @@ function CompleteScreen({ xpEarned, onHome }: { xpEarned: number; onHome: () => 
 }
 
 /** Full-screen overlay showing the two-pose illustration + movement info for one exercise. */
+/** Splits a flowing instruction paragraph into beginner-friendly numbered steps. */
+function splitIntoSteps(text?: string): string[] {
+  if (!text) return [];
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
-  const [gender, setGender] = useState<Gender>('female');
   const equipment = pickPrimaryEquipment(exercise.equipment);
+  const steps = splitIntoSteps(exercise.instructions);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: C.bg }}>
-      <div className="flex items-center justify-between px-5 pt-6 pb-2">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-auto" style={{ backgroundColor: C.bg }}>
+      <div className="flex items-center px-5 pt-6 pb-2">
         <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
           <ArrowLeft size={16} style={{ color: C.text }} />
         </button>
-        <div className="flex gap-2">
-          <button onClick={() => setGender('female')} className="rounded-full border px-3 py-1.5 text-xs font-semibold"
-            style={{ borderColor: gender === 'female' ? C.xp : C.border, color: gender === 'female' ? C.xp : C.muted, backgroundColor: gender === 'female' ? `${C.xp}1A` : 'transparent' }}>
-            Female
-          </button>
-          <button onClick={() => setGender('male')} className="rounded-full border px-3 py-1.5 text-xs font-semibold"
-            style={{ borderColor: gender === 'male' ? C.xp : C.border, color: gender === 'male' ? C.xp : C.muted, backgroundColor: gender === 'male' ? `${C.xp}1A` : 'transparent' }}>
-            Male
-          </button>
-        </div>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center overflow-auto px-5 py-4">
+      <div className="flex flex-1 flex-col items-center px-5 py-4">
         <div className="flex items-center justify-center" style={{ minHeight: 200 }}>
-          <ExerciseIllustration category={exercise.category} equipment={equipment} gender={gender} size={90} />
+          <ExerciseIllustration category={exercise.category} equipment={equipment} size={90} />
         </div>
 
         <div className="mt-6 w-full max-w-sm">
@@ -409,9 +408,28 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClos
               <p className="mt-1 font-bold" style={{ color: C.text, ...MO }}>{exercise.default_sets}×{exercise.default_reps}</p>
             </div>
           </div>
+
+          {steps.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-sm font-bold uppercase tracking-wide" style={SG}>How to do it</h2>
+              <ol className="mt-3 flex flex-col gap-3">
+                {steps.map((step, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                      style={{ backgroundColor: `${C.xp}22`, color: C.xp, ...MO }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="text-sm leading-relaxed pt-0.5" style={{ color: C.text }}>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+          </div>
         </div>
       </div>
-    </div>
   );
 }
 
