@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'RPG Fitness',
-  description: 'Level up your body. Train with kettlebells and dumbbells.',
+  title: 'WODXP',
+  description: 'Train. Earn XP. Level up. WODXP turns your kettlebell, dumbbell, and bodyweight training into a game.',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
-  themeColor: '#15171C',
+  themeColor: '#0D0D0D',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <link
-          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
           rel="stylesheet"
         />
       </head>
