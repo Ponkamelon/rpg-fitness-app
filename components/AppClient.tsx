@@ -28,7 +28,8 @@ interface Exercise {
   xp_value: number; default_sets: number; default_reps: number;
   default_weight_kg: number; illustration_url?: string; instructions?: string;
 }
-interface Props { user: User; stats: UserStats; exercises: Exercise[]; }
+interface AllTimeStats { totalWorkouts: number; totalKg: number; totalSeconds: number; }
+interface Props { user: User; stats: UserStats; exercises: Exercise[]; allTimeStats: AllTimeStats; }
 
 // ─── Design tokens (neon-on-dark) ─────────────────────────────────────────────
 const C = {
@@ -166,6 +167,54 @@ function HomeScreen({ user, stats, onGenerate, onBoss }: { user: User; stats: Us
   );
 }
 
+/**
+ * Picks a varied set of exercises for a generated workout, cycling through
+ * distinct categories (squat, push, pull, hinge, carry, core, mobility,
+ * conditioning) before ever repeating one — so a generated session doesn't
+ * end up as e.g. three squat variants back to back just because they all
+ * matched the equipment filter.
+ */
+function pickVariedExercises(pool: Exercise[], count: number): Exercise[] {
+  if (pool.length <= count) return [...pool].sort(() => Math.random() - 0.5);
+
+  const byCategory = new Map<string, Exercise[]>();
+  for (const ex of pool) {
+    if (!byCategory.has(ex.category)) byCategory.set(ex.category, []);
+    byCategory.get(ex.category)!.push(ex);
+  }
+  // Shuffle within each category so repeated generations still vary
+  for (const group of byCategory.values()) {
+    group.sort(() => Math.random() - 0.5);
+  }
+
+  // Shuffle the category order itself each time too
+  const categories = [...byCategory.keys()].sort(() => Math.random() - 0.5);
+
+  const selected: Exercise[] = [];
+  const usedIds = new Set<string>();
+  let round = 0;
+
+  // Round-robin across categories: take one from each category per round
+  // before allowing any category to contribute a second exercise.
+  while (selected.length < count && round < 10) {
+    let addedThisRound = false;
+    for (const cat of categories) {
+      if (selected.length >= count) break;
+      const group = byCategory.get(cat)!;
+      const next = group[round];
+      if (next && !usedIds.has(next.id)) {
+        selected.push(next);
+        usedIds.add(next.id);
+        addedThisRound = true;
+      }
+    }
+    if (!addedThisRound) break; // pool exhausted
+    round++;
+  }
+
+  return selected;
+}
+
 function GeneratorScreen({ exercises, onBack, onStart }: { exercises: Exercise[]; onBack: () => void; onStart: (exs: Exercise[]) => void }) {
   const [equipment, setEquipment] = useState<'kettlebell' | 'dumbbell' | 'bodyweight' | 'all'>('all');
   const [goal, setGoal] = useState<'strength' | 'conditioning' | 'mixed'>('mixed');
@@ -179,8 +228,7 @@ function GeneratorScreen({ exercises, onBack, onStart }: { exercises: Exercise[]
       return ex.equipment.includes(equipment) || ex.equipment.includes('bodyweight');
     });
     const count = duration <= 10 ? 3 : duration <= 20 ? 4 : duration <= 30 ? 5 : 6;
-    const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    onStart(shuffled.slice(0, Math.min(count, shuffled.length)));
+    onStart(pickVariedExercises(pool, count));
   };
 
   const Opt = <T extends string | number>({ label, val, cur, set }: { label: string; val: T; cur: T; set: (v: T) => void }) => (
@@ -232,6 +280,58 @@ function GeneratorScreen({ exercises, onBack, onStart }: { exercises: Exercise[]
           <Sparkles size={20} /> Generate
         </button>
       </div>
+    </div>
+  );
+}
+
+function SafetyNoticeScreen({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  const handleContinue = () => {
+    if (dontShowAgain && typeof window !== 'undefined') {
+      window.localStorage.setItem('wodxp_skip_safety_notice', '1');
+    }
+    onContinue();
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col px-5 pb-8 pt-6" style={{ backgroundColor: C.bg }}>
+      <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+        <ArrowLeft size={16} style={{ color: C.text }} />
+      </button>
+
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${C.xp}1A`, border: `2px solid ${C.xp}` }}>
+          <span style={{ color: C.xp, fontSize: 28, fontWeight: 700 }}>!</span>
+        </div>
+        <h1 className="mt-6 text-2xl font-bold" style={SG}>Before you start</h1>
+        <p className="mt-4 max-w-sm text-base leading-relaxed" style={{ color: C.text }}>
+          Listen to your body. Choose weights and movements that feel right for you. Focus on good form,
+          stay in control, and adjust or stop an exercise if you feel pain or discomfort.
+        </p>
+        <p className="mt-4 text-lg font-bold" style={{ color: C.xp, ...SG }}>
+          Your workout. Your pace.
+        </p>
+      </div>
+
+      <label className="mb-4 flex items-center justify-center gap-2 text-sm" style={{ color: C.muted }}>
+        <input
+          type="checkbox"
+          checked={dontShowAgain}
+          onChange={(e) => setDontShowAgain(e.target.checked)}
+          className="h-4 w-4 rounded"
+          style={{ accentColor: C.xp }}
+        />
+        Don&apos;t show this again
+      </label>
+
+      <button
+        onClick={handleContinue}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98]"
+        style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}
+      >
+        Got it — Let&apos;s train
+      </button>
     </div>
   );
 }
@@ -377,7 +477,7 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClos
 
       <div className="flex flex-1 flex-col items-center px-5 py-4">
         <div className="flex items-center justify-center" style={{ minHeight: 200 }}>
-          <ExerciseIllustration category={exercise.category} equipment={equipment} size={90} />
+          <ExerciseIllustration category={exercise.category} equipment={equipment} name={exercise.name} size={90} />
         </div>
 
         <div className="mt-6 w-full max-w-sm">
@@ -565,14 +665,130 @@ function StatsScreen({ stats }: { stats: UserStats }) {
   );
 }
 
-function ProfileMenu({ username, onLogout, onPrivacy }: { username: string; onLogout: () => void; onPrivacy: () => void }) {
+/** Formats total seconds trained as "Xh Ym" for the all-time stats card. */
+function formatDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  return `${hours}h ${minutes}m`;
+}
+
+function AllTimeStatsCard({ stats }: { stats: AllTimeStats }) {
+  const tiles = [
+    { label: 'Time Trained', value: formatDuration(stats.totalSeconds) },
+    { label: 'Workouts', value: stats.totalWorkouts.toLocaleString() },
+    { label: 'kg Lifted', value: Math.round(stats.totalKg).toLocaleString() },
+  ];
+  return (
+    <div>
+      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide" style={SG}>All-Time Stats</h2>
+      <div className="grid grid-cols-3 gap-2">
+        {tiles.map((t) => (
+          <div key={t.label} className="rounded-2xl border p-3 text-center" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+            <p className="text-lg font-bold" style={{ color: C.xp, ...MO }}>{t.value}</p>
+            <p className="mt-1 text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>{t.label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** BMI categories per WHO standard, used as the "average/reference" comparison. */
+function bmiCategory(bmi: number): { label: string; color: string } {
+  if (bmi < 18.5) return { label: 'Underweight', color: C.mobility };
+  if (bmi < 25) return { label: 'Normal range', color: C.xp };
+  if (bmi < 30) return { label: 'Overweight', color: C.conditioning };
+  return { label: 'Obese', color: C.boss };
+}
+
+/**
+ * BMI calculator — entirely client-side. Age, gender, height and weight are
+ * kept only in local component state and are NEVER sent to Supabase or any
+ * server, per GDPR: nothing here is persisted or logged anywhere.
+ */
+function BMICalculator() {
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState<'female' | 'male' | 'other'>('female');
+  const [heightCm, setHeightCm] = useState('');
+  const [weightKg, setWeightKg] = useState('');
+
+  const h = parseFloat(heightCm);
+  const w = parseFloat(weightKg);
+  const bmi = h > 0 && w > 0 ? w / ((h / 100) * (h / 100)) : null;
+  const category = bmi ? bmiCategory(bmi) : null;
+
+  return (
+    <div>
+      <h2 className="mb-1 text-sm font-bold uppercase tracking-wide" style={SG}>BMI Calculator</h2>
+      <p className="mb-3 text-xs" style={{ color: C.muted }}>
+        Not saved anywhere — calculated on your device only.
+      </p>
+      <div className="rounded-2xl border p-4" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>Age</label>
+            <input type="number" inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value)}
+              placeholder="30" className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+              style={{ borderColor: C.border, backgroundColor: C.raised, color: C.text }} />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>Gender</label>
+            <select value={gender} onChange={(e) => setGender(e.target.value as any)}
+              className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+              style={{ borderColor: C.border, backgroundColor: C.raised, color: C.text }}>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>Height (cm)</label>
+            <input type="number" inputMode="numeric" value={heightCm} onChange={(e) => setHeightCm(e.target.value)}
+              placeholder="175" className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+              style={{ borderColor: C.border, backgroundColor: C.raised, color: C.text }} />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>Weight (kg)</label>
+            <input type="number" inputMode="numeric" value={weightKg} onChange={(e) => setWeightKg(e.target.value)}
+              placeholder="75" className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+              style={{ borderColor: C.border, backgroundColor: C.raised, color: C.text }} />
+          </div>
+        </div>
+
+        {bmi !== null && category && (
+          <div className="mt-4 rounded-xl border px-4 py-3 text-center" style={{ borderColor: category.color, backgroundColor: `${category.color}15` }}>
+            <p className="text-2xl font-bold" style={{ color: category.color, ...MO }}>{bmi.toFixed(1)}</p>
+            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: category.color }}>{category.label}</p>
+            <p className="mt-1 text-[11px]" style={{ color: C.muted }}>Average/healthy range is 18.5–24.9</p>
+          </div>
+        )}
+
+        <p className="mt-3 text-[11px] leading-relaxed" style={{ color: C.muted }}>
+          BMI is a rough screening tool and doesn&apos;t account for muscle mass — strength athletes
+          often score &quot;overweight&quot; despite being lean and fit. Use it as a general reference, not a verdict.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ProfileMenu({ username, onLogout, onPrivacy, allTimeStats }: { username: string; onLogout: () => void; onPrivacy: () => void; allTimeStats: AllTimeStats }) {
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: C.bg }}>
       <header className="px-5 pt-6 pb-4">
         <p className="text-xs uppercase tracking-wider" style={{ color: C.muted }}>Account</p>
         <h1 className="text-2xl font-bold" style={SG}>{username}</h1>
       </header>
-      <div className="px-5 flex flex-col gap-3">
+
+      <div className="px-5">
+        <AllTimeStatsCard stats={allTimeStats} />
+      </div>
+
+      <div className="px-5 pt-6">
+        <BMICalculator />
+      </div>
+
+      <div className="px-5 pt-6 flex flex-col gap-3">
         <button onClick={onPrivacy} className="flex w-full items-center justify-between rounded-2xl border py-4 px-5 text-sm font-bold" style={{ borderColor: C.border, color: C.text, backgroundColor: C.surface, ...SG }}>
           Privacy Policy
           <ChevronRight size={16} style={{ color: C.muted }} />
@@ -587,9 +803,9 @@ function ProfileMenu({ username, onLogout, onPrivacy }: { username: string; onLo
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
 type Tab = 'home' | 'train' | 'exercises' | 'stats' | 'profile';
-type Screen = 'tab' | 'generator' | 'workout' | 'complete';
+type Screen = 'tab' | 'generator' | 'safety' | 'workout' | 'complete';
 
-export default function AppClient({ user, stats: initialStats, exercises }: Props) {
+export default function AppClient({ user, stats: initialStats, exercises, allTimeStats }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('home');
   const [screen, setScreen] = useState<Screen>('tab');
@@ -625,7 +841,17 @@ export default function AppClient({ user, stats: initialStats, exercises }: Prop
     <>
       <GlobalStyle />
       <GeneratorScreen exercises={exercises} onBack={() => setScreen('tab')}
-        onStart={(exs) => { setSessionExercises(exs); setScreen('workout'); }} />
+        onStart={(exs) => {
+          setSessionExercises(exs);
+          const skip = typeof window !== 'undefined' && window.localStorage.getItem('wodxp_skip_safety_notice') === '1';
+          setScreen(skip ? 'workout' : 'safety');
+        }} />
+    </>
+  );
+  if (screen === 'safety') return (
+    <>
+      <GlobalStyle />
+      <SafetyNoticeScreen onBack={() => setScreen('generator')} onContinue={() => setScreen('workout')} />
     </>
   );
   if (screen === 'workout') return (
@@ -655,7 +881,7 @@ export default function AppClient({ user, stats: initialStats, exercises }: Prop
   );
   else if (tab === 'exercises') content = <ExercisesScreen exercises={exercises} />;
   else if (tab === 'stats') content = <StatsScreen stats={stats} />;
-  else if (tab === 'profile') content = <ProfileMenu username={user.username} onLogout={handleLogout} onPrivacy={() => router.push('/privacy')} />;
+  else if (tab === 'profile') content = <ProfileMenu username={user.username} onLogout={handleLogout} onPrivacy={() => router.push('/privacy')} allTimeStats={allTimeStats} />;
 
   return (
     <div style={{ backgroundColor: C.bg }}>
