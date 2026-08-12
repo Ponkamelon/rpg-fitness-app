@@ -9,11 +9,14 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // Fetch user profile + stats in parallel
-  const [{ data: profile }, { data: stats }] = await Promise.all([
+  // Fetch user profile + stats + all-time totals in parallel
+  const [{ data: profile }, { data: stats }, { data: allTimeStatsRows }] = await Promise.all([
     supabase.from('users').select('*').eq('id', user.id).single(),
     supabase.from('user_stats').select('*').eq('user_id', user.id).single(),
+    supabase.rpc('get_alltime_stats', { p_user_id: user.id }),
   ]);
+
+  const allTimeStats = allTimeStatsRows?.[0] ?? { total_workouts: 0, total_kg: 0, total_seconds: 0 };
 
   // Fetch unlocked exercises for this user's levels
   const maxLevel = Math.max(
@@ -37,6 +40,11 @@ export default async function HomePage() {
         current_streak: 0, longest_streak: 0, streak_freeze_count: 1,
       }}
       exercises={exercises ?? []}
+      allTimeStats={{
+        totalWorkouts: allTimeStats.total_workouts ?? 0,
+        totalKg: allTimeStats.total_kg ?? 0,
+        totalSeconds: allTimeStats.total_seconds ?? 0,
+      }}
     />
   );
 }
