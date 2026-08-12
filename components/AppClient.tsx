@@ -693,12 +693,39 @@ function AllTimeStatsCard({ stats }: { stats: AllTimeStats }) {
   );
 }
 
-/** BMI categories per WHO standard, used as the "average/reference" comparison. */
+/** BMI categories per WHO standard. */
 function bmiCategory(bmi: number): { label: string; color: string } {
   if (bmi < 18.5) return { label: 'Underweight', color: C.mobility };
   if (bmi < 25) return { label: 'Normal range', color: C.xp };
   if (bmi < 30) return { label: 'Overweight', color: C.conditioning };
   return { label: 'Obese', color: C.boss };
+}
+
+/**
+ * Average BMI by age group and gender, from CDC/NHANES 2015-2016
+ * (National Health Statistics Reports No. 122, Table 7 — public domain).
+ * Used only as a population reference point, never as an individual
+ * target or diagnostic claim.
+ */
+const AVERAGE_BMI_BY_AGE_GENDER: Record<'male' | 'female', Record<'20-39' | '40-59' | '60+', number>> = {
+  male: { '20-39': 28.7, '40-59': 29.4, '60+': 29.2 },
+  female: { '20-39': 28.7, '40-59': 30.4, '60+': 29.8 },
+};
+
+function ageToBracket(age: number): '20-39' | '40-59' | '60+' {
+  if (age < 40) return '20-39';
+  if (age < 60) return '40-59';
+  return '60+';
+}
+
+/** Looks up the reference average BMI for a given age + gender.
+ *  For "other", averages the male and female figures for that bracket. */
+function getAverageBmi(age: number, gender: 'male' | 'female' | 'other'): number {
+  const bracket = ageToBracket(age);
+  if (gender === 'other') {
+    return (AVERAGE_BMI_BY_AGE_GENDER.male[bracket] + AVERAGE_BMI_BY_AGE_GENDER.female[bracket]) / 2;
+  }
+  return AVERAGE_BMI_BY_AGE_GENDER[gender][bracket];
 }
 
 /**
@@ -714,8 +741,10 @@ function BMICalculator() {
 
   const h = parseFloat(heightCm);
   const w = parseFloat(weightKg);
+  const a = parseFloat(age);
   const bmi = h > 0 && w > 0 ? w / ((h / 100) * (h / 100)) : null;
   const category = bmi ? bmiCategory(bmi) : null;
+  const averageBmi = a > 0 ? getAverageBmi(a, gender) : null;
 
   return (
     <div>
@@ -759,13 +788,28 @@ function BMICalculator() {
           <div className="mt-4 rounded-xl border px-4 py-3 text-center" style={{ borderColor: category.color, backgroundColor: `${category.color}15` }}>
             <p className="text-2xl font-bold" style={{ color: category.color, ...MO }}>{bmi.toFixed(1)}</p>
             <p className="text-xs font-medium uppercase tracking-wider" style={{ color: category.color }}>{category.label}</p>
-            <p className="mt-1 text-[11px]" style={{ color: C.muted }}>Average/healthy range is 18.5–24.9</p>
+            <p className="mt-1 text-[11px]" style={{ color: C.muted }}>WHO healthy range is 18.5–24.9</p>
+          </div>
+        )}
+
+        {bmi !== null && averageBmi !== null && (
+          <div className="mt-3 flex items-center justify-between rounded-xl border px-4 py-3" style={{ borderColor: C.border, backgroundColor: C.raised }}>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>
+                Avg. for {gender === 'other' ? 'adults' : gender === 'male' ? 'men' : 'women'} {ageToBracket(a)}
+              </p>
+              <p className="text-lg font-bold" style={{ color: C.text, ...MO }}>{averageBmi.toFixed(1)}</p>
+            </div>
+            <p className="max-w-[45%] text-right text-[11px]" style={{ color: C.muted }}>
+              {bmi < averageBmi ? 'Below' : bmi > averageBmi ? 'Above' : 'Right at'} this population average
+            </p>
           </div>
         )}
 
         <p className="mt-3 text-[11px] leading-relaxed" style={{ color: C.muted }}>
           BMI is a rough screening tool and doesn&apos;t account for muscle mass — strength athletes
           often score &quot;overweight&quot; despite being lean and fit. Use it as a general reference, not a verdict.
+          Age/gender averages sourced from CDC/NHANES 2015–2016 population data.
         </p>
       </div>
     </div>
