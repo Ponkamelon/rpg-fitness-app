@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
 
 // Kept as a standalone constants object (no component imports) so this page
 // stays lightweight and renders fine for logged-out visitors and app-store
@@ -27,16 +27,24 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  // Check auth status server-side so "Back to WODXP" always lands on the
+  // right place. Plain <a> tag (not next/link) so this is a full browser
+  // navigation/reload — the most reliable option across browsers,
+  // including Safari with strict cookie/tracking settings.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const backHref = user ? '/' : '/login';
+
   return (
     <div className="min-h-screen w-full px-5 py-10" style={{ backgroundColor: C.bg, color: C.text, fontFamily: "'Inter', sans-serif" }}>
       <div className="mx-auto max-w-2xl">
-        <Link href="/" className="text-xs font-medium uppercase tracking-wider" style={{ color: C.xp }}>
+        <a href={backHref} className="text-xs font-medium uppercase tracking-wider" style={{ color: C.xp }}>
           ← Back to WODXP
-        </Link>
+        </a>
 
         <h1 className="mt-4 text-3xl font-bold" style={{ fontFamily: "'Oswald', sans-serif" }}>Privacy Policy</h1>
-        <p className="mt-1 text-sm" style={{ color: C.muted }}>Last updated: August 11, 2026</p>
+        <p className="mt-1 text-sm" style={{ color: C.muted }}>Last updated: August 12, 2026</p>
 
         <p className="mt-6 text-sm leading-relaxed" style={{ color: C.muted }}>
           This Privacy Policy explains how WODXP (&quot;the App,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, stores, and
@@ -77,6 +85,7 @@ export default function PrivacyPage() {
             <li>We do not collect precise location data.</li>
             <li>We do not access your device&apos;s camera, microphone, or contacts.</li>
             <li>We do not currently process payments (this section will be updated if paid features are introduced).</li>
+            <li>The App&apos;s BMI calculator (age, gender, height, weight) runs entirely on your device. Those values are never sent to our servers, never stored, and disappear as soon as you leave the screen.</li>
           </ul>
         </Section>
 
