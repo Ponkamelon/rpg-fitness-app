@@ -372,9 +372,63 @@ export interface ExerciseIllustrationProps {
   category: ExerciseCategory;
   equipment: Equipment;
   size?: number;
+  /** Exercise name — used to look up a bespoke pose for exercises that don't
+   *  fit their category's default illustration (e.g. Cat-Cow is 'mobility'
+   *  but looks nothing like a standing lunge-and-reach stretch). */
+  name?: string;
 }
 
-export function ExerciseIllustration({ category, equipment, size = 90 }: ExerciseIllustrationProps) {
+// --- CAT-COW: kneeling on hands and knees, arching between "cow" (belly
+// down, head up) and "cat" (back rounded, head tucked). ---
+function CatCowStart({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 130 90" width={size * 1.4} height={size * 0.95} fill="none">
+      <Head cx={104} cy={26} />
+      <Stroke x1={98} y1={32} x2={85} y2={50} width={7} />
+      <Stroke x1={85} y1={50} x2={30} y2={54} width={10} />
+      <Stroke x1={85} y1={50} x2={90} y2={74} width={7} />
+      <Foot cx={92} cy={78} />
+      <Stroke x1={30} y1={54} x2={26} y2={76} width={7} />
+      <Foot cx={26} cy={80} />
+    </svg>
+  );
+}
+function CatCowEnd({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 130 90" width={size * 1.4} height={size * 0.95} fill="none" className="illo-pose-end">
+      <Head cx={80} cy={58} />
+      <Stroke x1={80} y1={50} x2={55} y2={38} width={7} />
+      <Stroke x1={55} y1={38} x2={30} y2={50} width={10} />
+      <Stroke x1={80} y1={50} x2={90} y2={74} width={7} />
+      <Foot cx={92} cy={78} />
+      <Stroke x1={30} y1={50} x2={26} y2={76} width={7} />
+      <Foot cx={26} cy={80} />
+    </svg>
+  );
+}
+function CatCowIllustration({ size }: { size: number }) {
+  const gap = size * 0.35;
+  return (
+    <div className="flex items-center gap-1">
+      <CatCowStart size={size * 0.85} />
+      <svg width={gap} height={size * 0.5} viewBox={`0 0 ${gap} 50`}>
+        <ArrowMarkers />
+        <path className="illo-arrow" d={`M6 30 Q ${gap / 2} 6 ${gap - 6} 30`} fill="none" stroke={BRAND.mobility} strokeWidth="3" strokeLinecap="round" markerEnd="url(#illo-arrow-pull-head)" />
+      </svg>
+      <CatCowEnd size={size * 0.85} />
+    </div>
+  );
+}
+
+const NAME_OVERRIDES: Record<string, (size: number) => React.ReactNode> = {
+  'Cat-Cow': (size) => <CatCowIllustration size={size} />,
+};
+
+export function ExerciseIllustration({ category, equipment, size = 90, name }: ExerciseIllustrationProps) {
+  if (name && NAME_OVERRIDES[name]) {
+    return <>{NAME_OVERRIDES[name](size)}</>;
+  }
+
   const gap = size * 0.35;
 
   if (category === 'core') {
