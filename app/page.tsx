@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
 
 // Kept as a standalone constants object (no component imports) so this page
 // stays lightweight and renders fine for logged-out visitors and app-store
@@ -27,11 +28,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  // Check auth status server-side so "Back to WODXP" always lands on the
+  // right place — the app for logged-in users, the login screen otherwise.
+  // Avoids relying on a client-side redirect that can be flaky in some
+  // browsers (e.g. Safari with strict cookie/tracking settings).
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const backHref = user ? '/' : '/login';
+
   return (
     <div className="min-h-screen w-full px-5 py-10" style={{ backgroundColor: C.bg, color: C.text, fontFamily: "'Inter', sans-serif" }}>
       <div className="mx-auto max-w-2xl">
-        <Link href="/" className="text-xs font-medium uppercase tracking-wider" style={{ color: C.xp }}>
+        <Link href={backHref} className="text-xs font-medium uppercase tracking-wider" style={{ color: C.xp }}>
           ← Back to WODXP
         </Link>
 
