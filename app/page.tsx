@@ -10,10 +10,12 @@ export default async function HomePage() {
   if (!user) redirect('/login');
 
   // Fetch user profile + stats + all-time totals in parallel
-  const [{ data: profile }, { data: stats }, { data: allTimeStatsRows }] = await Promise.all([
+  const [{ data: profile }, { data: stats }, { data: allTimeStatsRows }, { data: levelChallenges }, { data: bossBattles }] = await Promise.all([
     supabase.from('users').select('*').eq('id', user.id).single(),
     supabase.from('user_stats').select('*').eq('user_id', user.id).single(),
     supabase.rpc('get_alltime_stats', { p_user_id: user.id }),
+    supabase.from('level_challenges').select('*').order('level', { ascending: true }),
+    supabase.from('boss_battles').select('*').order('level', { ascending: true }),
   ]);
 
   const allTimeStats = allTimeStatsRows?.[0] ?? { total_workouts: 0, total_kg: 0, total_seconds: 0 };
@@ -45,6 +47,8 @@ export default async function HomePage() {
         totalKg: allTimeStats.total_kg ?? 0,
         totalSeconds: allTimeStats.total_seconds ?? 0,
       }}
+      levelChallenges={levelChallenges ?? []}
+      bossBattles={bossBattles ?? []}
     />
   );
 }
