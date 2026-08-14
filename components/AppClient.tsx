@@ -286,11 +286,20 @@ function pickVariedExercises(pool: Exercise[], count: number): Exercise[] {
   return selected;
 }
 
-function LevelChallengeScreen({ challenge, userId, onBack, onComplete }: {
-  challenge: LevelChallenge; userId: string; onBack: () => void; onComplete: (xpReward: number) => void;
+/** Finds the full Exercise record matching a boss/challenge's exercise_name,
+ *  so its illustration + step-by-step instructions can be shown on demand. */
+function findExerciseByName(exercises: Exercise[], name: string | null | undefined): Exercise | null {
+  if (!name) return null;
+  return exercises.find((e) => e.name === name) ?? null;
+}
+
+function LevelChallengeScreen({ challenge, exercises, userId, onBack, onComplete }: {
+  challenge: LevelChallenge; exercises: Exercise[]; userId: string; onBack: () => void; onComplete: (xpReward: number) => void;
 }) {
   const [usedScaled, setUsedScaled] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [viewing, setViewing] = useState<Exercise | null>(null);
+  const linkedExercise = findExerciseByName(exercises, challenge.exercise_name);
 
   const handleComplete = async () => {
     setSubmitting(true);
@@ -316,6 +325,12 @@ function LevelChallengeScreen({ challenge, userId, onBack, onComplete }: {
         <h1 className="mt-1 text-2xl font-bold" style={SG}>{challenge.name}</h1>
         <p className="mt-3 max-w-sm text-base leading-relaxed" style={{ color: C.text }}>{challenge.description}</p>
 
+        {linkedExercise && (
+          <button onClick={() => setViewing(linkedExercise)} className="mt-3 flex items-center gap-1.5 text-sm font-semibold" style={{ color: C.mobility }}>
+            <ChevronRight size={14} /> How do I do this?
+          </button>
+        )}
+
         {challenge.scaled_description && (
           <label className="mt-6 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm" style={{ borderColor: C.border, backgroundColor: C.surface, color: C.text }}>
             <input type="checkbox" checked={usedScaled} onChange={(e) => setUsedScaled(e.target.checked)} className="h-4 w-4 rounded" style={{ accentColor: C.xp }} />
@@ -331,6 +346,7 @@ function LevelChallengeScreen({ challenge, userId, onBack, onComplete }: {
         style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
         {submitting ? 'Saving…' : 'Mark Complete'}
       </button>
+      {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }
@@ -341,14 +357,15 @@ function formatTimer(totalSeconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function BossBattleScreen({ boss, userId, onBack, onComplete }: {
-  boss: BossBattle; userId: string; onBack: () => void; onComplete: (result: { passed: boolean; medal: string | null; xpReward: number }) => void;
+function BossBattleScreen({ boss, exercises, userId, onBack, onComplete }: {
+  boss: BossBattle; exercises: Exercise[]; userId: string; onBack: () => void; onComplete: (result: { passed: boolean; medal: string | null; xpReward: number }) => void;
 }) {
   const [phase, setPhase] = useState<'ready' | 'active' | 'submitting'>('ready');
   const [usedScaled, setUsedScaled] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const [roundsDone, setRoundsDone] = useState(0);
+  const [viewing, setViewing] = useState<Exercise | null>(null);
 
   React.useEffect(() => {
     if (!running) return;
@@ -384,9 +401,22 @@ function BossBattleScreen({ boss, userId, onBack, onComplete }: {
           <div className="mt-6 w-full max-w-sm rounded-2xl border p-4 text-left" style={{ borderColor: C.border, backgroundColor: C.surface }}>
             <p className="text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>{boss.rounds} Rounds</p>
             <ul className="mt-2 flex flex-col gap-1">
-              {structure.map((ex, i) => (
-                <li key={i} className="text-sm" style={{ color: C.text }}>{ex.reps} {ex.exercise_name}</li>
-              ))}
+              {structure.map((ex, i) => {
+                const linked = findExerciseByName(exercises, ex.exercise_name);
+                return (
+                  <li key={i}>
+                    <button
+                      onClick={() => linked && setViewing(linked)}
+                      disabled={!linked}
+                      className="flex w-full items-center justify-between text-left text-sm"
+                      style={{ color: C.text }}
+                    >
+                      <span>{ex.reps} {ex.exercise_name}</span>
+                      {linked && <ChevronRight size={14} style={{ color: C.mobility }} />}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
             {boss.time_cap_seconds && (
               <p className="mt-2 text-xs" style={{ color: C.muted }}>Recommended time cap: {formatTimer(boss.time_cap_seconds)}</p>
@@ -412,6 +442,7 @@ function BossBattleScreen({ boss, userId, onBack, onComplete }: {
           style={{ backgroundColor: C.boss, color: '#1A0E0C', ...SG }}>
           <Swords size={20} /> Start Boss
         </button>
+        {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
       </div>
     );
   }
@@ -443,9 +474,22 @@ function BossBattleScreen({ boss, userId, onBack, onComplete }: {
 
         <div className="mt-6 w-full max-w-sm rounded-2xl border p-4" style={{ borderColor: C.border, backgroundColor: C.surface }}>
           <ul className="flex flex-col gap-1 text-left">
-            {structure.map((ex, i) => (
-              <li key={i} className="text-sm" style={{ color: C.text }}>{ex.reps} {ex.exercise_name}</li>
-            ))}
+            {structure.map((ex, i) => {
+              const linked = findExerciseByName(exercises, ex.exercise_name);
+              return (
+                <li key={i}>
+                  <button
+                    onClick={() => linked && setViewing(linked)}
+                    disabled={!linked}
+                    className="flex w-full items-center justify-between text-left text-sm"
+                    style={{ color: C.text }}
+                  >
+                    <span>{ex.reps} {ex.exercise_name}</span>
+                    {linked && <ChevronRight size={14} style={{ color: C.mobility }} />}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
@@ -473,6 +517,7 @@ function BossBattleScreen({ boss, userId, onBack, onComplete }: {
           Stop — Try Again Later
         </button>
       </div>
+      {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }
@@ -1323,7 +1368,7 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
     return (
       <>
         <GlobalStyle />
-        <LevelChallengeScreen challenge={progress.challenge} userId={user.id} onBack={() => setScreen('tab')}
+        <LevelChallengeScreen challenge={progress.challenge} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
           onComplete={async (xp) => { setChallengeXpEarned(xp); await refreshStats(); setScreen('challenge-result'); }} />
       </>
     );
@@ -1340,7 +1385,7 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
     return (
       <>
         <GlobalStyle />
-        <BossBattleScreen boss={progress.boss} userId={user.id} onBack={() => setScreen('tab')}
+        <BossBattleScreen boss={progress.boss} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
           onComplete={async (result) => { setBossResult(result); await refreshStats(); setScreen('boss-result'); }} />
       </>
     );
