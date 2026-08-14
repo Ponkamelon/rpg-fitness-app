@@ -542,7 +542,6 @@ function KneelingBackbendPose({ size }: { size: number }) {
         <Head cx={62} cy={38} />
         <Stroke x1={58} y1={45} x2={48} y2={80} width={11} color={BRAND.mobility} />
       </g>
-      </g>
       <Stroke x1={52} y1={55} x2={30} y2={50} width={6} depth="far" />
       <Stroke x1={46} y1={80} x2={40} y2={110} width={9} depth="far" />
       <Foot cx={38} cy={114} depth="far" />
