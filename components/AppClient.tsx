@@ -217,18 +217,21 @@ function pickVariedExercises(pool: Exercise[], count: number): Exercise[] {
 
 function GeneratorScreen({ exercises, onBack, onStart }: { exercises: Exercise[]; onBack: () => void; onStart: (exs: Exercise[]) => void }) {
   const [equipment, setEquipment] = useState<'kettlebell' | 'dumbbell' | 'bodyweight' | 'all'>('all');
-  const [goal, setGoal] = useState<'strength' | 'conditioning' | 'mixed'>('mixed');
+  const [goal, setGoal] = useState<'strength' | 'conditioning' | 'mobility' | 'mixed'>('mixed');
   const [duration, setDuration] = useState<10 | 20 | 30 | 45>(20);
 
   const handleGenerate = () => {
-    const pool = exercises.filter((ex) => {
+    const equipmentPool = exercises.filter((ex) => {
       if (equipment === 'all') return true;
       if (equipment === 'bodyweight') return ex.equipment.includes('bodyweight');
       // Kettlebell/Dumbbell picks also include bodyweight moves as filler exercises
       return ex.equipment.includes(equipment) || ex.equipment.includes('bodyweight');
     });
+    // Goal narrows the pool to exercises that primarily train the chosen
+    // attribute. "Mixed" leaves the pool as-is for full variety.
+    const pool = goal === 'mixed' ? equipmentPool : equipmentPool.filter((ex) => ex.primary_attribute === goal);
     const count = duration <= 10 ? 3 : duration <= 20 ? 4 : duration <= 30 ? 5 : 6;
-    onStart(pickVariedExercises(pool, count));
+    onStart(pickVariedExercises(pool.length > 0 ? pool : equipmentPool, count));
   };
 
   const Opt = <T extends string | number>({ label, val, cur, set }: { label: string; val: T; cur: T; set: (v: T) => void }) => (
@@ -261,6 +264,7 @@ function GeneratorScreen({ exercises, onBack, onStart }: { exercises: Exercise[]
           <div className="flex gap-2">
             <Opt label="Strength" val="strength" cur={goal} set={setGoal} />
             <Opt label="Conditioning" val="conditioning" cur={goal} set={setGoal} />
+            <Opt label="Mobility" val="mobility" cur={goal} set={setGoal} />
             <Opt label="Mixed" val="mixed" cur={goal} set={setGoal} />
           </div>
         </div>
@@ -337,6 +341,11 @@ function SafetyNoticeScreen({ onBack, onContinue }: { onBack: () => void; onCont
 }
 
 function WorkoutScreen({ exercises, userId, onBack, onFinish }: { exercises: Exercise[]; userId: string; onBack: () => void; onFinish: (xp: number) => void }) {
+  // Captured once, when the workout screen first mounts — i.e. when the
+  // user actually starts training. Without this, the session row would
+  // only get a started_at/completed_at pair at save time (both ~identical),
+  // making "time trained" always compute to ~0 seconds.
+  const [startedAt] = useState(() => new Date().toISOString());
   const [logs, setLogs] = useState<Record<string, { weight: number; reps: number; sets: number }>>(
     Object.fromEntries(exercises.map((ex) => [ex.id, { weight: ex.default_weight_kg, reps: ex.default_reps, sets: ex.default_sets }]))
   );
@@ -351,7 +360,7 @@ function WorkoutScreen({ exercises, userId, onBack, onFinish }: { exercises: Exe
 
     const { data: session } = await supabase
       .from('workout_sessions')
-      .insert({ user_id: userId, format: 'circuit', status: 'completed', completed_at: new Date().toISOString() })
+      .insert({ user_id: userId, format: 'circuit', status: 'completed', started_at: startedAt, completed_at: new Date().toISOString() })
       .select()
       .single();
 

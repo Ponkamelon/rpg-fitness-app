@@ -420,8 +420,192 @@ function CatCowIllustration({ size }: { size: number }) {
   );
 }
 
+/** Shared wrapper: renders a single static pose with a pulsing "HOLD" label,
+ *  matching the look of the default core/mobility hold poses. */
+function HoldWrapper({ size, color, label, children }: { size: number; color: string; label: string; children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      {children}
+      <span className="absolute -bottom-1 right-2 text-[10px] font-bold tracking-wider" style={{ color, fontFamily: "'Oswald', sans-serif" }}>{label}</span>
+    </div>
+  );
+}
+
+// --- STANDING REACH: upright figure, one arm reaching/circling — covers
+// neck/shoulder/chest/side stretches done standing in place. ---
+function StandingReachPose({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 100 130" width={size} height={size * 1.3} fill="none">
+      <Head cx={46} cy={22} />
+      <Stroke x1={46} y1={29} x2={46} y2={72} width={11} />
+      <g className="illo-hold-glow">
+        <Stroke x1={46} y1={38} x2={70} y2={16} width={6} color={BRAND.mobility} />
+      </g>
+      <Stroke x1={46} y1={38} x2={30} y2={58} width={6} depth="far" />
+      <Stroke x1={42} y1={72} x2={38} y2={116} width={9} depth="far" />
+      <Foot cx={36} cy={120} depth="far" />
+      <Stroke x1={50} y1={72} x2={54} y2={116} width={9} />
+      <Foot cx={56} cy={120} />
+    </svg>
+  );
+}
+function StandingReachIllustration({ size }: { size: number }) {
+  return <HoldWrapper size={size} color={BRAND.mobility} label="HOLD & BREATHE"><StandingReachPose size={size} /></HoldWrapper>;
+}
+
+// --- FLOOR SEATED: seated on the floor, reaching forward or rotating —
+// covers hamstring/hip/spine stretches done sitting down. ---
+function FloorSeatedPose({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 130 90" width={size * 1.4} height={size * 0.95} fill="none">
+      <Head cx={22} cy={40} depth="far" />
+      <Stroke x1={28} y1={46} x2={44} y2={68} width={10} />
+      <g className="illo-hold-glow">
+        <Stroke x1={30} y1={50} x2={68} y2={40} width={6} color={BRAND.mobility} />
+      </g>
+      <Stroke x1={44} y1={68} x2={78} y2={70} width={7} />
+      <Foot cx={82} cy={70} />
+      <Stroke x1={44} y1={68} x2={52} y2={40} width={6} depth="far" />
+      <Foot cx={54} cy={36} depth="far" />
+    </svg>
+  );
+}
+function FloorSeatedIllustration({ size }: { size: number }) {
+  return <HoldWrapper size={size} color={BRAND.mobility} label="HOLD & BREATHE"><FloorSeatedPose size={size} /></HoldWrapper>;
+}
+
+// --- SINGLE-LEG BALANCE: standing on one leg, other leg engaged. ---
+function SingleLegBalancePose({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 100 130" width={size} height={size * 1.3} fill="none">
+      <Head cx={46} cy={20} />
+      <Stroke x1={46} y1={27} x2={46} y2={68} width={11} />
+      <Stroke x1={46} y1={36} x2={30} y2={50} width={6} depth="far" />
+      <g className="illo-hold-glow">
+        <Stroke x1={46} y1={36} x2={64} y2={54} width={6} color={BRAND.mobility} />
+        <Stroke x1={64} y1={54} x2={56} y2={92} width={7} color={BRAND.mobility} />
+      </g>
+      <Stroke x1={44} y1={68} x2={40} y2={112} width={9} />
+      <Foot cx={38} cy={116} />
+    </svg>
+  );
+}
+function SingleLegBalanceIllustration({ size }: { size: number }) {
+  return <HoldWrapper size={size} color={BRAND.mobility} label="HOLD & BALANCE"><SingleLegBalancePose size={size} /></HoldWrapper>;
+}
+
+// --- DOWNWARD DOG: hands and feet down, hips lifted into an inverted V. ---
+function DownwardDogPose({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 130 90" width={size * 1.4} height={size * 0.95} fill="none">
+      <Head cx={70} cy={62} />
+      <g className="illo-hold-glow">
+        <Stroke x1={70} y1={55} x2={45} y2={22} width={10} color={BRAND.mobility} />
+      </g>
+      <Stroke x1={45} y1={22} x2={40} y2={70} width={6} depth="far" />
+      <Foot cx={38} cy={74} depth="far" />
+      <Stroke x1={70} y1={55} x2={95} y2={68} width={7} />
+      <Foot cx={98} cy={72} />
+      <Stroke x1={45} y1={22} x2={20} y2={30} width={6} />
+      <Foot cx={16} cy={30} />
+    </svg>
+  );
+}
+function DownwardDogIllustration({ size }: { size: number }) {
+  return <HoldWrapper size={size} color={BRAND.mobility} label="HOLD & BREATHE"><DownwardDogPose size={size} /></HoldWrapper>;
+}
+
+// --- COBRA: prone, chest lifted — end position of Inchworm to Cobra. ---
+function CobraPose({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 130 90" width={size * 1.4} height={size * 0.95} fill="none">
+      <Head cx={98} cy={38} />
+      <g className="illo-hold-glow">
+        <Stroke x1={92} y1={44} x2={60} y2={58} width={9} color={BRAND.mobility} />
+      </g>
+      <Stroke x1={60} y1={58} x2={26} y2={60} width={9} />
+      <Foot cx={20} cy={60} />
+      <Stroke x1={80} y1={50} x2={78} y2={72} width={6} depth="far" />
+      <Foot cx={78} cy={76} depth="far" />
+    </svg>
+  );
+}
+function CobraIllustration({ size }: { size: number }) {
+  return <HoldWrapper size={size} color={BRAND.mobility} label="EASE IN GENTLY"><CobraPose size={size} /></HoldWrapper>;
+}
+
+// --- KNEELING BACKBEND: upright kneeling, leaning back with control. ---
+function KneelingBackbendPose({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 100 130" width={size} height={size * 1.3} fill="none">
+      <g className="illo-hold-glow">
+        <Head cx={62} cy={38} />
+        <Stroke x1={58} y1={45} x2={48} y2={80} width={11} color={BRAND.mobility} />
+      </g>
+      </g>
+      <Stroke x1={52} y1={55} x2={30} y2={50} width={6} depth="far" />
+      <Stroke x1={46} y1={80} x2={40} y2={110} width={9} depth="far" />
+      <Foot cx={38} cy={114} depth="far" />
+      <Stroke x1={50} y1={80} x2={56} y2={110} width={9} />
+      <Foot cx={58} cy={114} />
+    </svg>
+  );
+}
+function KneelingBackbendIllustration({ size }: { size: number }) {
+  return <HoldWrapper size={size} color={BRAND.mobility} label="EASE IN GENTLY"><KneelingBackbendPose size={size} /></HoldWrapper>;
+}
+
+// --- BRIDGE: lying on back, hips pushed up. Also reused as an improved
+// pose for Glute Bridge / Hip Thrust variants (previously approximated
+// with the generic core hold). ---
+function BridgePose({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 130 90" width={size * 1.4} height={size * 0.95} fill="none">
+      <Head cx={18} cy={68} depth="far" />
+      <Stroke x1={24} y1={64} x2={60} y2={48} width={10} />
+      <g className="illo-hold-glow">
+        <Stroke x1={60} y1={48} x2={90} y2={64} width={9} color={BRAND.mobility} />
+      </g>
+      <Stroke x1={90} y1={64} x2={88} y2={76} width={7} />
+      <Foot cx={88} cy={80} />
+      <Stroke x1={30} y1={66} x2={26} y2={78} width={6} depth="far" />
+    </svg>
+  );
+}
+function BridgeIllustration({ size }: { size: number }) {
+  return <HoldWrapper size={size} color={BRAND.mobility} label="LIFT & HOLD"><BridgePose size={size} /></HoldWrapper>;
+}
+
 const NAME_OVERRIDES: Record<string, (size: number) => React.ReactNode> = {
   'Cat-Cow': (size) => <CatCowIllustration size={size} />,
+  // Standing upper-body reach/circle stretches
+  'Neck Side Stretch': (size) => <StandingReachIllustration size={size} />,
+  'Shoulder Rolls': (size) => <StandingReachIllustration size={size} />,
+  'Arm Circles': (size) => <StandingReachIllustration size={size} />,
+  'Standing Side Reach': (size) => <StandingReachIllustration size={size} />,
+  'Standing Chest Opener': (size) => <StandingReachIllustration size={size} />,
+  'Wall Shoulder Reach': (size) => <StandingReachIllustration size={size} />,
+  // Seated floor stretches
+  'Seated Hamstring Reach': (size) => <FloorSeatedIllustration size={size} />,
+  'Figure Four Stretch': (size) => <FloorSeatedIllustration size={size} />,
+  'Open Book Rotation': (size) => <FloorSeatedIllustration size={size} />,
+  'Pancake Forward Fold': (size) => <FloorSeatedIllustration size={size} />,
+  // Single-leg balance
+  'Standing Quad Stretch': (size) => <SingleLegBalanceIllustration size={size} />,
+  // Dedicated poses
+  'Downward Dog': (size) => <DownwardDogIllustration size={size} />,
+  'Inchworm to Cobra': (size) => <CobraIllustration size={size} />,
+  'Kneeling Backbend': (size) => <KneelingBackbendIllustration size={size} />,
+  'Bridge Progression': (size) => <BridgeIllustration size={size} />,
+  // Retroactive improvement: these were previously approximated with the
+  // generic core-hold pose after the earlier category fix. A real bridge
+  // pose reads much more clearly for a lying hip-extension movement.
+  'Glute Bridge': (size) => <BridgeIllustration size={size} />,
+  'Dumbbell Glute Bridge': (size) => <BridgeIllustration size={size} />,
+  'Single-Leg Glute Bridge': (size) => <BridgeIllustration size={size} />,
+  'Hip Thrust': (size) => <BridgeIllustration size={size} />,
+  'Dumbbell Hip Thrust': (size) => <BridgeIllustration size={size} />,
+  'Single-Leg Hip Thrust': (size) => <BridgeIllustration size={size} />,
 };
 
 export function ExerciseIllustration({ category, equipment, size = 90, name }: ExerciseIllustrationProps) {
