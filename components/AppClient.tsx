@@ -28,8 +28,23 @@ interface Exercise {
   xp_value: number; default_sets: number; default_reps: number;
   default_weight_kg: number; illustration_url?: string; instructions?: string;
 }
+interface LevelChallenge {
+  level: number; name: string; description: string; exercise_name: string | null;
+  target_reps: number | null; target_duration_seconds: number | null;
+  equipment: string[]; scaled_description: string | null; xp_reward: number;
+}
+interface BossExercise { exercise_name: string; reps: number; }
+interface BossBattle {
+  level: number; name: string; description: string; rounds: number;
+  structure: BossExercise[]; scaled_structure: BossExercise[] | null;
+  time_cap_seconds: number | null; medal_silver_seconds: number | null; medal_gold_seconds: number | null;
+  xp_reward: number;
+}
 interface AllTimeStats { totalWorkouts: number; totalKg: number; totalSeconds: number; }
-interface Props { user: User; stats: UserStats; exercises: Exercise[]; allTimeStats: AllTimeStats; }
+interface Props {
+  user: User; stats: UserStats; exercises: Exercise[]; allTimeStats: AllTimeStats;
+  levelChallenges: LevelChallenge[]; bossBattles: BossBattle[];
+}
 
 // ─── Design tokens (neon-on-dark) ─────────────────────────────────────────────
 const C = {
@@ -45,6 +60,26 @@ function progressToNext(xp: number, level: number) {
   const current = xpForLevel(level);
   const next = xpForLevel(level + 1);
   return { progress: Math.min(1, (xp - current) / (next - current)), xpLeft: next - xp };
+}
+function xpDerivedLevel(xpTotal: number): number {
+  let lvl = 1;
+  for (let i = 1; i <= 50; i++) if (xpTotal >= xpForLevel(i)) lvl = i;
+  return lvl;
+}
+
+/** Computes the current Level Challenge / Boss Battle gating state.
+ *  `level` (cleared level) only advances via completing a challenge or
+ *  boss — see clear_level_challenge / attempt_boss_battle in the DB. */
+function getLevelProgress(stats: UserStats, levelChallenges: LevelChallenge[], bossBattles: BossBattle[]) {
+  const pendingLevel = stats.level + 1;
+  const isBossPending = pendingLevel % 5 === 0;
+  const isComplete = pendingLevel > 50;
+  const derivedLevel = xpDerivedLevel(stats.xp_total);
+  const isUnlocked = !isComplete && derivedLevel >= pendingLevel;
+  const isXpFrozen = isUnlocked && isBossPending; // matches award_xp's freeze logic
+  const challenge = !isComplete && !isBossPending ? levelChallenges.find((c) => c.level === pendingLevel) ?? null : null;
+  const boss = !isComplete && isBossPending ? bossBattles.find((b) => b.level === pendingLevel) ?? null : null;
+  return { pendingLevel, isBossPending, isComplete, isUnlocked, isXpFrozen, challenge, boss };
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -104,7 +139,12 @@ function Stepper({ label, value, onChange, step = 1, unit, min = 0 }: { label: s
 
 // ─── Screens ─────────────────────────────────────────────────────────────────
 
-function HomeScreen({ user, stats, onGenerate, onBoss }: { user: User; stats: UserStats; onGenerate: () => void; onBoss: () => void }) {
+function HomeScreen({ user, stats, onGenerate, onChallenge, onBoss, levelChallenges, bossBattles }: {
+  user: User; stats: UserStats; onGenerate: () => void; onChallenge: () => void; onBoss: () => void;
+  levelChallenges: LevelChallenge[]; bossBattles: BossBattle[];
+}) {
+  const progress = getLevelProgress(stats, levelChallenges, bossBattles);
+
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: C.bg }}>
       <header className="flex items-center justify-between px-5 pt-6 pb-2">
@@ -112,9 +152,15 @@ function HomeScreen({ user, stats, onGenerate, onBoss }: { user: User; stats: Us
           <p className="text-xs uppercase tracking-wider" style={{ color: C.muted }}>Welcome back</p>
           <h1 className="text-xl font-bold" style={SG}>{user.username}</h1>
         </div>
-        <div className="flex items-center gap-1.5 rounded-full border px-3 py-1.5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
-          <Flame size={16} color="#FF9D4D" fill="#FF9D4D" style={{ filter: 'drop-shadow(0 0 4px #FF9D4D)' }} />
-          <span className="text-sm font-semibold" style={MO}>{stats.current_streak}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 rounded-full border px-3 py-1.5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: C.xp }}>Lv</span>
+            <span className="text-sm font-semibold" style={MO}>{stats.level}</span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full border px-3 py-1.5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+            <Flame size={16} color="#FF9D4D" fill="#FF9D4D" style={{ filter: 'drop-shadow(0 0 4px #FF9D4D)' }} />
+            <span className="text-sm font-semibold" style={MO}>{stats.current_streak}</span>
+          </div>
         </div>
       </header>
 
@@ -138,16 +184,41 @@ function HomeScreen({ user, stats, onGenerate, onBoss }: { user: User; stats: Us
       </section>
 
       <section className="px-5 pt-4">
-        <button onClick={onBoss} className="flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left" style={{ borderColor: `${C.boss}55`, backgroundColor: `${C.boss}0F` }}>
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${C.boss}22` }}>
-            <Swords size={22} color={C.boss} style={{ filter: `drop-shadow(0 0 5px ${C.boss})` }} />
+        {progress.isComplete ? (
+          <div className="rounded-2xl border px-4 py-3.5 text-center" style={{ borderColor: C.xp, backgroundColor: `${C.xp}15` }}>
+            <p className="text-sm font-bold" style={{ color: C.xp, ...SG }}>🏆 WODXP Legend — Level 50 Complete!</p>
           </div>
-          <div className="flex-1">
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: C.boss }}>Boss Challenge</p>
-            <p className="text-sm" style={{ color: C.text }}>Clear this to advance your level</p>
+        ) : !progress.isUnlocked ? (
+          <div className="rounded-2xl border px-4 py-3.5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: C.muted }}>
+              {progress.isBossPending ? `🔒 Boss Locked — Level ${progress.pendingLevel}` : `Next: Level ${progress.pendingLevel} Challenge`}
+            </p>
+            <p className="mt-1 text-sm" style={{ color: C.text }}>Keep training to unlock it.</p>
           </div>
-          <ChevronRight size={18} style={{ color: C.muted }} />
-        </button>
+        ) : progress.isBossPending && progress.boss ? (
+          <button onClick={onBoss} className="flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left" style={{ borderColor: `${C.boss}55`, backgroundColor: `${C.boss}0F` }}>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${C.boss}22` }}>
+              <Swords size={22} color={C.boss} style={{ filter: `drop-shadow(0 0 5px ${C.boss})` }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: C.boss }}>Boss Battle — {progress.boss.name}</p>
+              <p className="text-sm" style={{ color: C.text }}>Defeat this to unlock Level {progress.pendingLevel}</p>
+              {progress.isXpFrozen && <p className="mt-0.5 text-[11px]" style={{ color: C.boss }}>⏸ XP is paused until you defeat this boss</p>}
+            </div>
+            <ChevronRight size={18} style={{ color: C.muted }} />
+          </button>
+        ) : progress.challenge ? (
+          <button onClick={onChallenge} className="flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left" style={{ borderColor: `${C.xp}55`, backgroundColor: `${C.xp}0F` }}>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${C.xp}22` }}>
+              <Trophy size={22} color={C.xp} style={{ filter: `drop-shadow(0 0 5px ${C.xp})` }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: C.xp }}>Level Challenge — {progress.challenge.name}</p>
+              <p className="text-sm" style={{ color: C.text }}>Complete this to unlock Level {progress.pendingLevel}</p>
+            </div>
+            <ChevronRight size={18} style={{ color: C.muted }} />
+          </button>
+        ) : null}
       </section>
 
       <section className="px-5 pt-6">
@@ -215,6 +286,250 @@ function pickVariedExercises(pool: Exercise[], count: number): Exercise[] {
   return selected;
 }
 
+function LevelChallengeScreen({ challenge, userId, onBack, onComplete }: {
+  challenge: LevelChallenge; userId: string; onBack: () => void; onComplete: (xpReward: number) => void;
+}) {
+  const [usedScaled, setUsedScaled] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleComplete = async () => {
+    setSubmitting(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc('clear_level_challenge', {
+      p_user_id: userId, p_level: challenge.level, p_used_scaled: usedScaled,
+    });
+    setSubmitting(false);
+    if (!error) onComplete(challenge.xp_reward);
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col px-5 pb-8 pt-6" style={{ backgroundColor: C.bg }}>
+      <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+        <ArrowLeft size={16} style={{ color: C.text }} />
+      </button>
+
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `${C.xp}1A`, border: `2px solid ${C.xp}` }}>
+          <Trophy size={28} style={{ color: C.xp }} />
+        </div>
+        <p className="mt-4 text-xs font-medium uppercase tracking-wider" style={{ color: C.xp }}>Level {challenge.level} Challenge</p>
+        <h1 className="mt-1 text-2xl font-bold" style={SG}>{challenge.name}</h1>
+        <p className="mt-3 max-w-sm text-base leading-relaxed" style={{ color: C.text }}>{challenge.description}</p>
+
+        {challenge.scaled_description && (
+          <label className="mt-6 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm" style={{ borderColor: C.border, backgroundColor: C.surface, color: C.text }}>
+            <input type="checkbox" checked={usedScaled} onChange={(e) => setUsedScaled(e.target.checked)} className="h-4 w-4 rounded" style={{ accentColor: C.xp }} />
+            Use scaled version: {challenge.scaled_description}
+          </label>
+        )}
+
+        <p className="mt-4 text-xs" style={{ color: C.muted }}>Reward: <span style={{ color: C.xp, ...MO }}>+{challenge.xp_reward} XP</span></p>
+      </div>
+
+      <button onClick={handleComplete} disabled={submitting}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98] disabled:opacity-60"
+        style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+        {submitting ? 'Saving…' : 'Mark Complete'}
+      </button>
+    </div>
+  );
+}
+
+function formatTimer(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function BossBattleScreen({ boss, userId, onBack, onComplete }: {
+  boss: BossBattle; userId: string; onBack: () => void; onComplete: (result: { passed: boolean; medal: string | null; xpReward: number }) => void;
+}) {
+  const [phase, setPhase] = useState<'ready' | 'active' | 'submitting'>('ready');
+  const [usedScaled, setUsedScaled] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [roundsDone, setRoundsDone] = useState(0);
+
+  React.useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const structure = usedScaled && boss.scaled_structure ? boss.scaled_structure : boss.structure;
+
+  const submitAttempt = async (passed: boolean) => {
+    setRunning(false);
+    setPhase('submitting');
+    const supabase = createClient();
+    const { data: medal } = await supabase.rpc('attempt_boss_battle', {
+      p_user_id: userId, p_level: boss.level, p_passed: passed,
+      p_duration_seconds: passed ? elapsed : null, p_used_scaled: usedScaled,
+    });
+    onComplete({ passed, medal: medal ?? null, xpReward: passed ? boss.xp_reward : 0 });
+  };
+
+  if (phase === 'ready') {
+    return (
+      <div className="flex min-h-screen flex-col px-5 pb-8 pt-6" style={{ backgroundColor: C.bg }}>
+        <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <ArrowLeft size={16} style={{ color: C.text }} />
+        </button>
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <Swords size={40} color={C.boss} style={{ filter: `drop-shadow(0 0 8px ${C.boss})` }} />
+          <p className="mt-3 text-xs font-medium uppercase tracking-wider" style={{ color: C.boss }}>Level {boss.level} Boss</p>
+          <h1 className="mt-1 text-3xl font-bold" style={SG}>{boss.name}</h1>
+          <p className="mt-3 max-w-sm text-sm leading-relaxed" style={{ color: C.text }}>{boss.description}</p>
+
+          <div className="mt-6 w-full max-w-sm rounded-2xl border p-4 text-left" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>{boss.rounds} Rounds</p>
+            <ul className="mt-2 flex flex-col gap-1">
+              {structure.map((ex, i) => (
+                <li key={i} className="text-sm" style={{ color: C.text }}>{ex.reps} {ex.exercise_name}</li>
+              ))}
+            </ul>
+            {boss.time_cap_seconds && (
+              <p className="mt-2 text-xs" style={{ color: C.muted }}>Recommended time cap: {formatTimer(boss.time_cap_seconds)}</p>
+            )}
+          </div>
+
+          {boss.scaled_structure && (
+            <label className="mt-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm" style={{ borderColor: C.border, backgroundColor: C.surface, color: C.text }}>
+              <input type="checkbox" checked={usedScaled} onChange={(e) => setUsedScaled(e.target.checked)} className="h-4 w-4 rounded" style={{ accentColor: C.xp }} />
+              Use scaled movements
+            </label>
+          )}
+
+          <div className="mt-6 w-full max-w-sm rounded-2xl border p-4" style={{ borderColor: C.boss, backgroundColor: `${C.boss}0F` }}>
+            <p className="text-sm font-bold" style={{ color: C.boss, ...SG }}>BOSS READY?</p>
+            <p className="mt-1 text-xs leading-relaxed" style={{ color: C.text }}>
+              Train smart. Listen to your body and choose movements and weights that feel right for you. Good form beats speed.
+            </p>
+          </div>
+        </div>
+        <button onClick={() => { setPhase('active'); setRunning(true); }}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98]"
+          style={{ backgroundColor: C.boss, color: '#1A0E0C', ...SG }}>
+          <Swords size={20} /> Start Boss
+        </button>
+      </div>
+    );
+  }
+
+  if (phase === 'submitting') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-5" style={{ backgroundColor: C.bg }}>
+        <p className="text-sm" style={{ color: C.muted }}>Saving your result…</p>
+      </div>
+    );
+  }
+
+  // phase === 'active'
+  return (
+    <div className="flex min-h-screen flex-col px-5 pb-8 pt-6" style={{ backgroundColor: C.bg }}>
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <ArrowLeft size={16} style={{ color: C.text }} />
+        </button>
+        <p className="text-sm font-bold" style={{ color: C.boss, ...SG }}>{boss.name}</p>
+        <div style={{ width: 36 }} />
+      </div>
+
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <p className="text-6xl font-bold" style={{ color: C.text, ...MO }}>{formatTimer(elapsed)}</p>
+        <p className="mt-1 text-xs uppercase tracking-wider" style={{ color: C.muted }}>
+          {running ? 'Running' : 'Paused'}{boss.time_cap_seconds ? ` · cap ${formatTimer(boss.time_cap_seconds)}` : ''}
+        </p>
+
+        <div className="mt-6 w-full max-w-sm rounded-2xl border p-4" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <ul className="flex flex-col gap-1 text-left">
+            {structure.map((ex, i) => (
+              <li key={i} className="text-sm" style={{ color: C.text }}>{ex.reps} {ex.exercise_name}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-6 flex items-center gap-4">
+          <button onClick={() => setRoundsDone((r) => Math.max(0, r - 1))} className="flex h-10 w-10 items-center justify-center rounded-full border" style={{ borderColor: C.border, color: C.text }}><Minus size={16} /></button>
+          <div className="text-center">
+            <p className="text-3xl font-bold" style={{ color: C.xp, ...MO }}>{roundsDone} / {boss.rounds}</p>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>Rounds</p>
+          </div>
+          <button onClick={() => setRoundsDone((r) => Math.min(boss.rounds, r + 1))} className="flex h-10 w-10 items-center justify-center rounded-full border" style={{ borderColor: C.border, color: C.text }}><Plus size={16} /></button>
+        </div>
+
+        <button onClick={() => setRunning((r) => !r)} className="mt-4 rounded-full border px-6 py-2 text-sm font-bold" style={{ borderColor: C.border, color: C.text, ...SG }}>
+          {running ? 'Pause' : 'Resume'}
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <button onClick={() => submitAttempt(true)} disabled={roundsDone < boss.rounds}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold disabled:opacity-40"
+          style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+          <Check size={20} strokeWidth={3} /> Boss Defeated
+        </button>
+        <button onClick={() => submitAttempt(false)} className="w-full rounded-2xl border py-3 text-sm font-bold" style={{ borderColor: C.border, color: C.muted, ...SG }}>
+          Stop — Try Again Later
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ChallengeResultScreen({ xpEarned, onHome }: { xpEarned: number; onHome: () => void }) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-5 text-center" style={{ backgroundColor: C.bg }}>
+      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full" style={{ backgroundColor: `${C.xp}1F`, border: `2px solid ${C.xp}`, boxShadow: `0 0 24px ${C.xp}66` }}>
+        <Trophy size={44} style={{ color: C.xp }} />
+      </div>
+      <h1 className="text-3xl font-bold" style={SG}>Challenge Complete!</h1>
+      <p className="mt-2" style={{ color: C.muted }}>Level unlocked.</p>
+      <div className="mt-8 w-full rounded-2xl border p-5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+        <p className="text-sm" style={{ color: C.muted }}>XP earned</p>
+        <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+{xpEarned}</p>
+      </div>
+      <button onClick={onHome} className="mt-8 w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+        Back to Home
+      </button>
+    </div>
+  );
+}
+
+function BossResultScreen({ result, bossName, onHome }: {
+  result: { passed: boolean; medal: string | null; xpReward: number }; bossName: string; onHome: () => void;
+}) {
+  const medalEmoji = result.medal === 'gold' ? '🥇' : result.medal === 'silver' ? '🥈' : result.medal === 'bronze' ? '🥉' : null;
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-5 text-center" style={{ backgroundColor: C.bg }}>
+      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full"
+        style={{ backgroundColor: result.passed ? `${C.xp}1F` : `${C.border}66`, border: `2px solid ${result.passed ? C.xp : C.border}` }}>
+        {result.passed ? <Trophy size={44} style={{ color: C.xp }} /> : <Swords size={44} style={{ color: C.muted }} />}
+      </div>
+      <h1 className="text-3xl font-bold" style={SG}>{result.passed ? 'Boss Defeated!' : 'Boss Survived'}</h1>
+      <p className="mt-2" style={{ color: C.muted }}>{bossName}</p>
+
+      {result.passed ? (
+        <div className="mt-8 w-full rounded-2xl border p-5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          {medalEmoji && <p className="text-4xl">{medalEmoji}</p>}
+          <p className="mt-2 text-sm" style={{ color: C.muted }}>XP earned</p>
+          <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+{result.xpReward}</p>
+          <p className="mt-2 text-sm font-bold" style={{ color: C.xp, ...SG }}>LEVEL UNLOCKED</p>
+        </div>
+      ) : (
+        <p className="mt-8 max-w-sm text-sm leading-relaxed" style={{ color: C.text }}>
+          No XP lost, no progress removed. You'll get it next time — try again whenever you're ready.
+        </p>
+      )}
+
+      <button onClick={onHome} className="mt-8 w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+        Back to Home
+      </button>
+    </div>
+  );
+}
+
 function GeneratorScreen({ exercises, onBack, onStart }: { exercises: Exercise[]; onBack: () => void; onStart: (exs: Exercise[]) => void }) {
   const [equipment, setEquipment] = useState<'kettlebell' | 'dumbbell' | 'bodyweight' | 'all'>('all');
   const [goal, setGoal] = useState<'strength' | 'conditioning' | 'mobility' | 'mixed'>('mixed');
@@ -263,7 +578,7 @@ function GeneratorScreen({ exercises, onBack, onStart }: { exercises: Exercise[]
           <p className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider" style={{ color: C.muted }}><Target size={14} /> Goal</p>
           <div className="flex gap-2">
             <Opt label="Strength" val="strength" cur={goal} set={setGoal} />
-            <Opt label="Conditioning" val="conditioning" cur={goal} set={setGoal} />
+            <Opt label="Endurance" val="conditioning" cur={goal} set={setGoal} />
             <Opt label="Mobility" val="mobility" cur={goal} set={setGoal} />
             <Opt label="Mixed" val="mixed" cur={goal} set={setGoal} />
           </div>
@@ -443,7 +758,78 @@ function WorkoutScreen({ exercises, userId, onBack, onFinish }: { exercises: Exe
   );
 }
 
-function CompleteScreen({ xpEarned, onHome }: { xpEarned: number; onHome: () => void }) {
+// ─── Streak & Level-up messages ────────────────────────────────────────────────
+const STREAK_MESSAGES: Record<3 | 5 | 7, string[]> = {
+  3: [
+    'Great streak! Remember to fuel your body well.',
+    'Stay strong. Eat well, sleep well, train smart.',
+    'Keep moving — but listen to your body.',
+  ],
+  5: [
+    'Five days strong! Recovery is part of training.',
+    "Don't forget to rest. That's when you get stronger.",
+    'Train hard. Recover harder.',
+  ],
+  7: [
+    "7-day streak! You've earned a recovery day.",
+    'Take a break. Come back stronger.',
+    "Rest isn't quitting. It's part of the plan.",
+    'Great work! Hydrate, refuel and recharge.',
+  ],
+};
+
+const LEVEL_UP_MESSAGES: string[] = [
+  'LEVEL UP! Great work — you earned it!',
+  'New level unlocked! Keep it going!',
+  "You did it! Another level conquered.",
+  'Stronger. Better. Level up!',
+  'Great job! Your hard work is paying off.',
+  'Boom! New level reached!',
+  "Nice work! You're getting stronger.",
+  'Progress unlocked! Keep pushing!',
+  'Another level down. Great job!',
+  'You showed up. You trained. You leveled up!',
+  "Well earned! Welcome to the next level.",
+  'That effort paid off. LEVEL UP!',
+  "You're on fire! New level unlocked.",
+  'Hard work = progress. Great job!',
+  "Level complete. You're stronger than yesterday!",
+];
+
+function randomFrom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** Compares stats before/after a workout and returns any popups earned this session. */
+function detectSessionPopups(prev: UserStats, next: UserStats): { levelUps: { attribute: string; level: number }[]; streakMessage: string | null } {
+  const levelUps: { attribute: string; level: number }[] = [];
+  const attrs: { key: keyof UserStats; label: string }[] = [
+    { key: 'level_strength', label: 'Strength' },
+    { key: 'level_mobility', label: 'Mobility' },
+    { key: 'level_conditioning', label: 'Conditioning' },
+  ];
+  for (const { key, label } of attrs) {
+    if ((next[key] as number) > (prev[key] as number)) {
+      levelUps.push({ attribute: label, level: next[key] as number });
+    }
+  }
+
+  let streakMessage: string | null = null;
+  if ([3, 5, 7].includes(next.current_streak) && next.current_streak !== prev.current_streak) {
+    streakMessage = randomFrom(STREAK_MESSAGES[next.current_streak as 3 | 5 | 7]);
+  }
+
+  return { levelUps, streakMessage };
+}
+
+function CompleteScreen({ xpEarned, levelUps, streakMessage, onHome }: {
+  xpEarned: number;
+  levelUps: { attribute: string; level: number }[];
+  streakMessage: string | null;
+  onHome: () => void;
+}) {
+  const levelUpMessage = levelUps.length > 0 ? randomFrom(LEVEL_UP_MESSAGES) : null;
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-5 text-center" style={{ backgroundColor: C.bg }}>
       <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full" style={{ backgroundColor: `${C.xp}1F`, border: `2px solid ${C.xp}`, boxShadow: `0 0 24px ${C.xp}66` }}>
@@ -451,7 +837,29 @@ function CompleteScreen({ xpEarned, onHome }: { xpEarned: number; onHome: () => 
       </div>
       <h1 className="text-3xl font-bold" style={SG}>Workout Saved!</h1>
       <p className="mt-2" style={{ color: C.muted }}>Your progress has been recorded.</p>
-      <div className="mt-8 w-full rounded-2xl border p-5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+
+      {levelUpMessage && (
+        <div className="mt-6 w-full rounded-2xl border p-5" style={{ borderColor: C.xp, backgroundColor: `${C.xp}15`, boxShadow: `0 0 20px ${C.xp}33` }}>
+          <p className="text-lg font-bold" style={{ color: C.xp, ...SG }}>{levelUpMessage}</p>
+          <div className="mt-2 flex flex-wrap justify-center gap-2">
+            {levelUps.map((lu) => (
+              <span key={lu.attribute} className="rounded-full px-3 py-1 text-xs font-bold" style={{ backgroundColor: `${C.xp}22`, color: C.xp, ...MO }}>
+                {lu.attribute} → Lv {lu.level}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {streakMessage && (
+        <div className="mt-4 w-full rounded-2xl border p-4" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <p className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: C.text }}>
+            <Flame size={16} color="#FF9D4D" fill="#FF9D4D" /> {streakMessage}
+          </p>
+        </div>
+      )}
+
+      <div className="mt-6 w-full rounded-2xl border p-5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
         <p className="text-sm" style={{ color: C.muted }}>XP earned this session</p>
         <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+{xpEarned}</p>
       </div>
@@ -856,15 +1264,25 @@ function ProfileMenu({ username, onLogout, onPrivacy, allTimeStats }: { username
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
 type Tab = 'home' | 'train' | 'exercises' | 'stats' | 'profile';
-type Screen = 'tab' | 'generator' | 'safety' | 'workout' | 'complete';
+type Screen = 'tab' | 'generator' | 'safety' | 'workout' | 'complete' | 'challenge' | 'boss' | 'challenge-result' | 'boss-result';
 
-export default function AppClient({ user, stats: initialStats, exercises, allTimeStats }: Props) {
+export default function AppClient({ user, stats: initialStats, exercises, allTimeStats, levelChallenges, bossBattles }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('home');
   const [screen, setScreen] = useState<Screen>('tab');
   const [sessionExercises, setSessionExercises] = useState<Exercise[]>([]);
   const [lastXP, setLastXP] = useState(0);
+  const [sessionLevelUps, setSessionLevelUps] = useState<{ attribute: string; level: number }[]>([]);
+  const [sessionStreakMessage, setSessionStreakMessage] = useState<string | null>(null);
+  const [challengeXpEarned, setChallengeXpEarned] = useState(0);
+  const [bossResult, setBossResult] = useState<{ passed: boolean; medal: string | null; xpReward: number } | null>(null);
   const [stats, setStats] = useState(initialStats);
+
+  const refreshStats = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from('user_stats').select('*').eq('user_id', user.id).single();
+    if (data) setStats(data);
+  };
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -875,8 +1293,17 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
   const handleFinish = async (xp: number) => {
     setLastXP(xp);
     const supabase = createClient();
+    const previousStats = stats;
     const { data } = await supabase.from('user_stats').select('*').eq('user_id', user.id).single();
-    if (data) setStats(data);
+    if (data) {
+      setStats(data);
+      const popups = detectSessionPopups(previousStats, data);
+      setSessionLevelUps(popups.levelUps);
+      setSessionStreakMessage(popups.streakMessage);
+    } else {
+      setSessionLevelUps([]);
+      setSessionStreakMessage(null);
+    }
     setScreen('complete');
   };
 
@@ -890,6 +1317,43 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
 
   const GlobalStyle = () => <style>{neonIconStyles}{illustrationStyles}</style>;
 
+  if (screen === 'challenge') {
+    const progress = getLevelProgress(stats, levelChallenges, bossBattles);
+    if (!progress.challenge) { setScreen('tab'); return null; }
+    return (
+      <>
+        <GlobalStyle />
+        <LevelChallengeScreen challenge={progress.challenge} userId={user.id} onBack={() => setScreen('tab')}
+          onComplete={async (xp) => { setChallengeXpEarned(xp); await refreshStats(); setScreen('challenge-result'); }} />
+      </>
+    );
+  }
+  if (screen === 'challenge-result') return (
+    <>
+      <GlobalStyle />
+      <ChallengeResultScreen xpEarned={challengeXpEarned} onHome={() => { setScreen('tab'); setTab('home'); }} />
+    </>
+  );
+  if (screen === 'boss') {
+    const progress = getLevelProgress(stats, levelChallenges, bossBattles);
+    if (!progress.boss) { setScreen('tab'); return null; }
+    return (
+      <>
+        <GlobalStyle />
+        <BossBattleScreen boss={progress.boss} userId={user.id} onBack={() => setScreen('tab')}
+          onComplete={async (result) => { setBossResult(result); await refreshStats(); setScreen('boss-result'); }} />
+      </>
+    );
+  }
+  if (screen === 'boss-result' && bossResult) {
+    const progress = getLevelProgress(stats, levelChallenges, bossBattles);
+    return (
+      <>
+        <GlobalStyle />
+        <BossResultScreen result={bossResult} bossName={progress.boss?.name ?? bossBattles.find((b) => b.level === stats.level)?.name ?? 'Boss'} onHome={() => { setScreen('tab'); setTab('home'); }} />
+      </>
+    );
+  }
   if (screen === 'generator') return (
     <>
       <GlobalStyle />
@@ -917,12 +1381,18 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
   if (screen === 'complete') return (
     <>
       <GlobalStyle />
-      <CompleteScreen xpEarned={lastXP} onHome={() => { setScreen('tab'); setTab('home'); }} />
+      <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} onHome={() => { setScreen('tab'); setTab('home'); }} />
     </>
   );
 
   let content: React.ReactNode = null;
-  if (tab === 'home') content = <HomeScreen user={user} stats={stats} onGenerate={() => setScreen('generator')} onBoss={() => {}} />;
+  if (tab === 'home') content = (
+    <HomeScreen
+      user={user} stats={stats} onGenerate={() => setScreen('generator')}
+      onChallenge={() => setScreen('challenge')} onBoss={() => setScreen('boss')}
+      levelChallenges={levelChallenges} bossBattles={bossBattles}
+    />
+  );
   else if (tab === 'train') content = (
     <div className="flex min-h-screen flex-col items-center justify-center px-5 text-center" style={{ backgroundColor: C.bg }}>
       <Sparkles size={40} style={{ color: C.xp, filter: `drop-shadow(0 0 8px ${C.xp})` }} />
