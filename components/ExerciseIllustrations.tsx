@@ -575,6 +575,53 @@ function BridgeIllustration({ size }: { size: number }) {
   return <HoldWrapper size={size} color={BRAND.mobility} label="LIFT & HOLD"><BridgePose size={size} /></HoldWrapper>;
 }
 
+// --- CALF RAISE: standing flat-footed -> risen onto the toes. Reuses the
+// same vertical DOWN/UP arrow convention as Squat, since this is a
+// repeated up/down movement, not a static hold. ---
+function CalfRaiseStart({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 100 130" width={size} height={size * 1.3} fill="none">
+      <Head cx={50} cy={20} />
+      <Stroke x1={50} y1={27} x2={50} y2={62} width={11} />
+      <Stroke x1={50} y1={34} x2={38} y2={48} width={6} depth="far" />
+      <Stroke x1={50} y1={34} x2={62} y2={48} width={6} />
+      <Stroke x1={47} y1={62} x2={45} y2={104} width={9} depth="far" />
+      <Foot cx={45} cy={110} depth="far" />
+      <Stroke x1={53} y1={62} x2={55} y2={104} width={9} />
+      <Foot cx={55} cy={110} />
+    </svg>
+  );
+}
+function CalfRaiseEnd({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 100 130" width={size} height={size * 1.3} fill="none" className="illo-pose-end">
+      <Head cx={50} cy={14} />
+      <Stroke x1={50} y1={21} x2={50} y2={56} width={11} />
+      <Stroke x1={50} y1={28} x2={38} y2={42} width={6} depth="far" />
+      <Stroke x1={50} y1={28} x2={62} y2={42} width={6} />
+      <Stroke x1={47} y1={56} x2={45} y2={98} width={9} depth="far" />
+      <Stroke x1={45} y1={98} x2={41} y2={106} width={7} depth="far" />
+      <Stroke x1={53} y1={56} x2={55} y2={98} width={9} />
+      <Stroke x1={55} y1={98} x2={59} y2={106} width={7} />
+    </svg>
+  );
+}
+function CalfRaiseIllustration({ size }: { size: number }) {
+  const gap = size * 0.5;
+  const unit = size / 100;
+  const arrowX = size + gap / 2;
+  return (
+    <div className="relative" style={{ width: size * 2 + gap, height: size * 1.3 }}>
+      <svg width="0" height="0"><ArrowMarkers /></svg>
+      <div className="absolute left-0 top-0"><CalfRaiseStart size={size} /></div>
+      <div className="absolute" style={{ left: size + gap, top: 0 }}><CalfRaiseEnd size={size} /></div>
+      <svg className="absolute" width={size * 2 + gap} height={size * 1.3} viewBox={`0 0 ${size * 2 + gap} ${size * 1.3}`} style={{ left: 0, top: 0 }}>
+        <VerticalMotionArrows arrowX={arrowX} topY={20 * unit} bottomY={104 * unit} />
+      </svg>
+    </div>
+  );
+}
+
 const NAME_OVERRIDES: Record<string, (size: number) => React.ReactNode> = {
   'Cat-Cow': (size) => <CatCowIllustration size={size} />,
   // Standing upper-body reach/circle stretches
@@ -596,6 +643,11 @@ const NAME_OVERRIDES: Record<string, (size: number) => React.ReactNode> = {
   'Inchworm to Cobra': (size) => <CobraIllustration size={size} />,
   'Kneeling Backbend': (size) => <KneelingBackbendIllustration size={size} />,
   'Bridge Progression': (size) => <BridgeIllustration size={size} />,
+  // Standing heel-raise movement — didn't match any movement-pattern
+  // keyword during auto-categorization, so it had silently fallen back
+  // to the (wrong) generic core-hold pose.
+  'Calf Raise': (size) => <CalfRaiseIllustration size={size} />,
+  'Single-Leg Calf Raise': (size) => <CalfRaiseIllustration size={size} />,
   // Retroactive improvement: these were previously approximated with the
   // generic core-hold pose after the earlier category fix. A real bridge
   // pose reads much more clearly for a lying hip-extension movement.
