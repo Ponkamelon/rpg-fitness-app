@@ -727,6 +727,22 @@ function SafetyNoticeScreen({ onBack, onContinue }: { onBack: () => void; onCont
   );
 }
 
+/**
+ * Per-exercise XP for a logged set of weight/reps/sets, compared against
+ * the exercise's defaults. Lowering ANY of the three from default costs
+ * -2 XP (once, not per-parameter, to discourage picking an easier version
+ * for full credit). Raising ANY of them earns +1 XP (also once — raising
+ * all three isn't +3). Unchanged from default = no adjustment. There is
+ * no other scaling with reps/sets/weight — that uncapped bonus is exactly
+ * what let XP be farmed by just cranking the sets stepper.
+ */
+function computeExerciseXp(ex: Exercise, log: { weight: number; reps: number; sets: number }): number {
+  const loweredAny = log.weight < ex.default_weight_kg || log.reps < ex.default_reps || log.sets < ex.default_sets;
+  const raisedAny = log.weight > ex.default_weight_kg || log.reps > ex.default_reps || log.sets > ex.default_sets;
+  const adjustment = loweredAny ? -2 : raisedAny ? 1 : 0;
+  return Math.max(0, ex.xp_value + adjustment);
+}
+
 function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }: { exercises: Exercise[]; userId: string; durationMinutes: number; onBack: () => void; onFinish: (requestedXp: number, grantedXp: number) => void }) {
   // Captured once, when the workout screen first mounts — i.e. when the
   // user actually starts training. Without this, the session row would
@@ -763,19 +779,10 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
       }));
       await supabase.from('workout_exercises').insert(rows);
 
-      // Per-exercise XP adjustment: scaling ANY of weight/reps/sets down
-      // from the exercise's default costs -2 XP (once, not per-parameter)
-      // to discourage picking an easier version for full credit. Scaling
-      // up earns +1 XP (also once — increasing all three isn't +3).
-      // Unchanged from default = no adjustment either way.
+      // Per-exercise XP adjustment: see computeExerciseXp() above.
       const totalXP = exercises.reduce((sum, ex) => {
         if (!done.has(ex.id)) return sum;
-        const log = logs[ex.id];
-        const loweredAny = log.weight < ex.default_weight_kg || log.reps < ex.default_reps || log.sets < ex.default_sets;
-        const raisedAny = log.weight > ex.default_weight_kg || log.reps > ex.default_reps || log.sets > ex.default_sets;
-        const adjustment = loweredAny ? -2 : raisedAny ? 1 : 0;
-        const exerciseXp = Math.max(0, ex.xp_value + log.sets * 5 + adjustment);
-        return sum + exerciseXp;
+        return sum + computeExerciseXp(ex, logs[ex.id]);
       }, 0);
 
       const { data: grantedXp } = await supabase.rpc('award_xp', { p_user_id: userId, p_xp: totalXP });
@@ -812,7 +819,7 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
                     <span className="text-xs capitalize" style={{ color: C.muted }}>{CATEGORY_LABELS[ex.category]}</span>
                     <span className="text-xs" style={{ color: C.muted }}>·</span>
                     <span className="text-xs font-medium" style={{ color: EQUIPMENT_COLORS[equipment] }}>{EQUIPMENT_LABELS[equipment]}</span>
-                    <span className="text-xs" style={{ color: C.muted }}>· +{ex.xp_value + log.sets * 5} XP</span>
+                    <span className="text-xs" style={{ color: C.muted }}>· +{computeExerciseXp(ex, log)} XP</span>
                   </div>
                   <p className="text-[10px] mt-0.5" style={{ color: C.muted }}>Tap the icon to see how it's done</p>
                 </div>
