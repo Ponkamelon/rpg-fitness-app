@@ -154,7 +154,7 @@ function HomeScreen({ user, stats, onGenerate, onChallenge, onBoss, levelChallen
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 rounded-full border px-3 py-1.5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
-            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: C.xp }}>Lv</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: C.xp }}>Quest Lv</span>
             <span className="text-sm font-semibold" style={MO}>{stats.level}</span>
           </div>
           <div className="flex items-center gap-1.5 rounded-full border px-3 py-1.5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
@@ -579,28 +579,46 @@ function BossResultScreen({ result, bossName, onHome }: {
   );
 }
 
-function GeneratorScreen({ exercises, totalExerciseCount, onBack, onStart }: { exercises: Exercise[]; totalExerciseCount: number; onBack: () => void; onStart: (exs: Exercise[]) => void }) {
-  const [equipment, setEquipment] = useState<'kettlebell' | 'dumbbell' | 'bodyweight' | 'all'>('all');
+function GeneratorScreen({ exercises, totalExerciseCount, onBack, onStart }: { exercises: Exercise[]; totalExerciseCount: number; onBack: () => void; onStart: (exs: Exercise[], durationMinutes: number) => void }) {
+  const [equipment, setEquipment] = useState<Set<'kettlebell' | 'dumbbell' | 'bodyweight'>>(
+    new Set(['kettlebell', 'dumbbell', 'bodyweight'])
+  );
   const [goal, setGoal] = useState<'strength' | 'conditioning' | 'mobility' | 'mixed'>('mixed');
   const [duration, setDuration] = useState<10 | 20 | 30 | 45>(20);
 
-  const handleGenerate = () => {
-    const equipmentPool = exercises.filter((ex) => {
-      if (equipment === 'all') return true;
-      if (equipment === 'bodyweight') return ex.equipment.includes('bodyweight');
-      // Kettlebell/Dumbbell picks also include bodyweight moves as filler exercises
-      return ex.equipment.includes(equipment) || ex.equipment.includes('bodyweight');
+  const toggleEquipment = (eq: 'kettlebell' | 'dumbbell' | 'bodyweight') => {
+    setEquipment((prev) => {
+      const next = new Set(prev);
+      if (next.has(eq)) {
+        if (next.size > 1) next.delete(eq); // always keep at least one selected
+      } else {
+        next.add(eq);
+      }
+      return next;
     });
+  };
+
+  const handleGenerate = () => {
+    // An exercise qualifies if it supports ANY of the selected equipment
+    // types — picking Bodyweight + Dumbbell excludes kettlebell-only moves.
+    const equipmentPool = exercises.filter((ex) => ex.equipment.some((e) => equipment.has(e as 'kettlebell' | 'dumbbell' | 'bodyweight')));
     // Goal narrows the pool to exercises that primarily train the chosen
     // attribute. "Mixed" leaves the pool as-is for full variety.
     const pool = goal === 'mixed' ? equipmentPool : equipmentPool.filter((ex) => ex.primary_attribute === goal);
     const count = duration <= 10 ? 3 : duration <= 20 ? 4 : duration <= 30 ? 5 : 6;
-    onStart(pickVariedExercises(pool.length > 0 ? pool : equipmentPool, count));
+    onStart(pickVariedExercises(pool.length > 0 ? pool : equipmentPool, count), duration);
   };
 
   const Opt = <T extends string | number>({ label, val, cur, set }: { label: string; val: T; cur: T; set: (v: T) => void }) => (
     <button onClick={() => set(val)} className="flex-1 rounded-xl border py-3 text-sm font-semibold"
       style={{ borderColor: cur === val ? C.xp : C.border, backgroundColor: cur === val ? `${C.xp}1A` : C.surface, color: cur === val ? C.xp : C.text, ...SG }}>
+      {label}
+    </button>
+  );
+
+  const ToggleOpt = ({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) => (
+    <button onClick={onClick} className="flex-1 rounded-xl border py-3 text-sm font-semibold"
+      style={{ borderColor: active ? C.xp : C.border, backgroundColor: active ? `${C.xp}1A` : C.surface, color: active ? C.xp : C.text, ...SG }}>
       {label}
     </button>
   );
@@ -620,13 +638,12 @@ function GeneratorScreen({ exercises, totalExerciseCount, onBack, onStart }: { e
       <div className="flex flex-col gap-6">
         <div>
           <p className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider" style={{ color: C.muted }}>
-            <span style={{ color: C.kettlebell }}>●</span> Equipment
+            <span style={{ color: C.kettlebell }}>●</span> Equipment <span className="normal-case" style={{ color: C.muted }}>(tap to select any combination)</span>
           </p>
           <div className="flex gap-2">
-            <Opt label="Kettlebell" val="kettlebell" cur={equipment} set={setEquipment} />
-            <Opt label="Dumbbell" val="dumbbell" cur={equipment} set={setEquipment} />
-            <Opt label="Bodyweight" val="bodyweight" cur={equipment} set={setEquipment} />
-            <Opt label="All" val="all" cur={equipment} set={setEquipment} />
+            <ToggleOpt label="Kettlebell" active={equipment.has('kettlebell')} onClick={() => toggleEquipment('kettlebell')} />
+            <ToggleOpt label="Dumbbell" active={equipment.has('dumbbell')} onClick={() => toggleEquipment('dumbbell')} />
+            <ToggleOpt label="Bodyweight" active={equipment.has('bodyweight')} onClick={() => toggleEquipment('bodyweight')} />
           </div>
         </div>
         <div>
@@ -710,7 +727,7 @@ function SafetyNoticeScreen({ onBack, onContinue }: { onBack: () => void; onCont
   );
 }
 
-function WorkoutScreen({ exercises, userId, onBack, onFinish }: { exercises: Exercise[]; userId: string; onBack: () => void; onFinish: (xp: number) => void }) {
+function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }: { exercises: Exercise[]; userId: string; durationMinutes: number; onBack: () => void; onFinish: (requestedXp: number, grantedXp: number) => void }) {
   // Captured once, when the workout screen first mounts — i.e. when the
   // user actually starts training. Without this, the session row would
   // only get a started_at/completed_at pair at save time (both ~identical),
@@ -730,7 +747,7 @@ function WorkoutScreen({ exercises, userId, onBack, onFinish }: { exercises: Exe
 
     const { data: session } = await supabase
       .from('workout_sessions')
-      .insert({ user_id: userId, format: 'circuit', status: 'completed', started_at: startedAt, completed_at: new Date().toISOString() })
+      .insert({ user_id: userId, format: 'circuit', status: 'completed', started_at: startedAt, completed_at: new Date().toISOString(), duration_minutes: durationMinutes })
       .select()
       .single();
 
@@ -746,10 +763,24 @@ function WorkoutScreen({ exercises, userId, onBack, onFinish }: { exercises: Exe
       }));
       await supabase.from('workout_exercises').insert(rows);
 
-      const totalXP = exercises.reduce((sum, ex) => done.has(ex.id) ? sum + ex.xp_value + logs[ex.id].sets * 5 : sum, 0);
-      await supabase.rpc('award_xp', { p_user_id: userId, p_xp: totalXP });
+      // Per-exercise XP adjustment: scaling ANY of weight/reps/sets down
+      // from the exercise's default costs -2 XP (once, not per-parameter)
+      // to discourage picking an easier version for full credit. Scaling
+      // up earns +1 XP (also once — increasing all three isn't +3).
+      // Unchanged from default = no adjustment either way.
+      const totalXP = exercises.reduce((sum, ex) => {
+        if (!done.has(ex.id)) return sum;
+        const log = logs[ex.id];
+        const loweredAny = log.weight < ex.default_weight_kg || log.reps < ex.default_reps || log.sets < ex.default_sets;
+        const raisedAny = log.weight > ex.default_weight_kg || log.reps > ex.default_reps || log.sets > ex.default_sets;
+        const adjustment = loweredAny ? -2 : raisedAny ? 1 : 0;
+        const exerciseXp = Math.max(0, ex.xp_value + log.sets * 5 + adjustment);
+        return sum + exerciseXp;
+      }, 0);
 
-      onFinish(totalXP);
+      const { data: grantedXp } = await supabase.rpc('award_xp', { p_user_id: userId, p_xp: totalXP });
+
+      onFinish(totalXP, grantedXp ?? totalXP);
     }
     setSaving(false);
   };
@@ -877,11 +908,12 @@ function detectSessionPopups(prev: UserStats, next: UserStats): { levelUps: { at
   return { levelUps, streakMessage };
 }
 
-function CompleteScreen({ xpEarned, levelUps, streakMessage, newlyUnlocked, onHome }: {
+function CompleteScreen({ xpEarned, levelUps, streakMessage, newlyUnlocked, xpCapped, onHome }: {
   xpEarned: number;
   levelUps: { attribute: string; level: number }[];
   streakMessage: string | null;
   newlyUnlocked: number;
+  xpCapped: boolean;
   onHome: () => void;
 }) {
   const levelUpMessage = levelUps.length > 0 ? randomFrom(LEVEL_UP_MESSAGES) : null;
@@ -930,6 +962,11 @@ function CompleteScreen({ xpEarned, levelUps, streakMessage, newlyUnlocked, onHo
         <p className="text-sm" style={{ color: C.muted }}>XP earned this session</p>
         <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+{xpEarned}</p>
       </div>
+      {xpCapped && (
+        <p className="mt-3 text-xs leading-relaxed" style={{ color: C.muted }}>
+          You've hit today's XP limit (2 workouts/day) — this session was still saved, but XP resumes tomorrow.
+        </p>
+      )}
       <button onClick={onHome} className="mt-8 w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
         Back to Home
       </button>
@@ -1338,10 +1375,12 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   const [tab, setTab] = useState<Tab>('home');
   const [screen, setScreen] = useState<Screen>('tab');
   const [sessionExercises, setSessionExercises] = useState<Exercise[]>([]);
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState(20);
   const [lastXP, setLastXP] = useState(0);
   const [sessionLevelUps, setSessionLevelUps] = useState<{ attribute: string; level: number }[]>([]);
   const [sessionStreakMessage, setSessionStreakMessage] = useState<string | null>(null);
   const [sessionNewlyUnlocked, setSessionNewlyUnlocked] = useState(0);
+  const [xpCapped, setXpCapped] = useState(false);
   const [challengeXpEarned, setChallengeXpEarned] = useState(0);
   const [bossResult, setBossResult] = useState<{ passed: boolean; medal: string | null; xpReward: number } | null>(null);
   const [stats, setStats] = useState(initialStats);
@@ -1395,8 +1434,9 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     router.push('/login');
   };
 
-  const handleFinish = async (xp: number) => {
-    setLastXP(xp);
+  const handleFinish = async (requestedXp: number, grantedXp: number) => {
+    setLastXP(grantedXp);
+    setXpCapped(grantedXp < requestedXp);
     const supabase = createClient();
     const previousStats = stats;
     const { data } = await supabase.from('user_stats').select('*').eq('user_id', user.id).single();
@@ -1469,8 +1509,9 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     <>
       <GlobalStyle />
       <GeneratorScreen exercises={exercises} totalExerciseCount={totalExerciseCount} onBack={() => setScreen('tab')}
-        onStart={(exs) => {
+        onStart={(exs, durationMinutes) => {
           setSessionExercises(exs);
+          setSessionDurationMinutes(durationMinutes);
           const skip = typeof window !== 'undefined' && window.localStorage.getItem('wodxp_skip_safety_notice') === '1';
           setScreen(skip ? 'workout' : 'safety');
         }} />
@@ -1485,14 +1526,14 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   if (screen === 'workout') return (
     <>
       <GlobalStyle />
-      <WorkoutScreen exercises={sessionExercises} userId={user.id}
+      <WorkoutScreen exercises={sessionExercises} userId={user.id} durationMinutes={sessionDurationMinutes}
         onBack={() => setScreen('tab')} onFinish={handleFinish} />
     </>
   );
   if (screen === 'complete') return (
     <>
       <GlobalStyle />
-      <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} newlyUnlocked={sessionNewlyUnlocked} onHome={() => { setScreen('tab'); setTab('home'); }} />
+      <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} newlyUnlocked={sessionNewlyUnlocked} xpCapped={xpCapped} onHome={() => { setScreen('tab'); setTab('home'); }} />
     </>
   );
 
