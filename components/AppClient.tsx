@@ -43,7 +43,7 @@ interface BossBattle {
 interface AllTimeStats { totalWorkouts: number; totalKg: number; totalSeconds: number; }
 interface Props {
   user: User; stats: UserStats; exercises: Exercise[]; allTimeStats: AllTimeStats;
-  levelChallenges: LevelChallenge[]; bossBattles: BossBattle[];
+  levelChallenges: LevelChallenge[]; bossBattles: BossBattle[]; totalExerciseCount: number;
 }
 
 // ─── Design tokens (neon-on-dark) ─────────────────────────────────────────────
@@ -139,9 +139,9 @@ function Stepper({ label, value, onChange, step = 1, unit, min = 0 }: { label: s
 
 // ─── Screens ─────────────────────────────────────────────────────────────────
 
-function HomeScreen({ user, stats, onGenerate, onChallenge, onBoss, levelChallenges, bossBattles }: {
+function HomeScreen({ user, stats, onGenerate, onChallenge, onBoss, levelChallenges, bossBattles, unlockedCount, totalCount }: {
   user: User; stats: UserStats; onGenerate: () => void; onChallenge: () => void; onBoss: () => void;
-  levelChallenges: LevelChallenge[]; bossBattles: BossBattle[];
+  levelChallenges: LevelChallenge[]; bossBattles: BossBattle[]; unlockedCount: number; totalCount: number;
 }) {
   const progress = getLevelProgress(stats, levelChallenges, bossBattles);
 
@@ -169,6 +169,10 @@ function HomeScreen({ user, stats, onGenerate, onChallenge, onBoss, levelChallen
           <AttributeRing label="Strength" level={stats.level_strength} xp={stats.xp_strength} color={C.strength} />
           <AttributeRing label="Mobility" level={stats.level_mobility} xp={stats.xp_mobility} color={C.mobility} />
           <AttributeRing label="Conditioning" level={stats.level_conditioning} xp={stats.xp_conditioning} color={C.conditioning} />
+        </div>
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-xs" style={{ color: C.muted }}>
+          <Sparkles size={12} style={{ color: C.mobility }} />
+          <span style={MO}>{unlockedCount}</span> of <span style={MO}>{totalCount}</span> movements unlocked
         </div>
       </section>
 
@@ -575,7 +579,7 @@ function BossResultScreen({ result, bossName, onHome }: {
   );
 }
 
-function GeneratorScreen({ exercises, onBack, onStart }: { exercises: Exercise[]; onBack: () => void; onStart: (exs: Exercise[]) => void }) {
+function GeneratorScreen({ exercises, totalExerciseCount, onBack, onStart }: { exercises: Exercise[]; totalExerciseCount: number; onBack: () => void; onStart: (exs: Exercise[]) => void }) {
   const [equipment, setEquipment] = useState<'kettlebell' | 'dumbbell' | 'bodyweight' | 'all'>('all');
   const [goal, setGoal] = useState<'strength' | 'conditioning' | 'mobility' | 'mixed'>('mixed');
   const [duration, setDuration] = useState<10 | 20 | 30 | 45>(20);
@@ -605,7 +609,13 @@ function GeneratorScreen({ exercises, onBack, onStart }: { exercises: Exercise[]
     <div className="min-h-screen px-5 pb-28 pt-6" style={{ backgroundColor: C.bg }}>
       <div className="mb-6 flex items-center gap-3">
         <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}><ArrowLeft size={16} style={{ color: C.text }} /></button>
-        <h1 className="text-2xl font-bold" style={SG}>Generate Workout</h1>
+        <div>
+          <h1 className="text-2xl font-bold" style={SG}>Generate Workout</h1>
+          <p className="flex items-center gap-1.5 text-xs" style={{ color: C.muted }}>
+            <Sparkles size={11} style={{ color: C.mobility }} />
+            <span style={MO}>{exercises.length}</span> of <span style={MO}>{totalExerciseCount}</span> movements unlocked
+          </p>
+        </div>
       </div>
       <div className="flex flex-col gap-6">
         <div>
@@ -867,10 +877,11 @@ function detectSessionPopups(prev: UserStats, next: UserStats): { levelUps: { at
   return { levelUps, streakMessage };
 }
 
-function CompleteScreen({ xpEarned, levelUps, streakMessage, onHome }: {
+function CompleteScreen({ xpEarned, levelUps, streakMessage, newlyUnlocked, onHome }: {
   xpEarned: number;
   levelUps: { attribute: string; level: number }[];
   streakMessage: string | null;
+  newlyUnlocked: number;
   onHome: () => void;
 }) {
   const levelUpMessage = levelUps.length > 0 ? randomFrom(LEVEL_UP_MESSAGES) : null;
@@ -893,6 +904,17 @@ function CompleteScreen({ xpEarned, levelUps, streakMessage, onHome }: {
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {newlyUnlocked > 0 && (
+        <div className="mt-4 w-full rounded-2xl border p-5" style={{ borderColor: C.mobility, backgroundColor: `${C.mobility}15`, boxShadow: `0 0 20px ${C.mobility}33` }}>
+          <p className="flex items-center justify-center gap-2 text-lg font-bold" style={{ color: C.mobility, ...SG }}>
+            <Sparkles size={20} /> You unlocked new movements!
+          </p>
+          <p className="mt-1 text-sm" style={{ color: C.text }}>
+            {newlyUnlocked} new {newlyUnlocked === 1 ? 'exercise is' : 'exercises are'} now available to train.
+          </p>
         </div>
       )}
 
@@ -1311,7 +1333,7 @@ function ProfileMenu({ username, onLogout, onPrivacy, allTimeStats }: { username
 type Tab = 'home' | 'train' | 'exercises' | 'stats' | 'profile';
 type Screen = 'tab' | 'generator' | 'safety' | 'workout' | 'complete' | 'challenge' | 'boss' | 'challenge-result' | 'boss-result';
 
-export default function AppClient({ user, stats: initialStats, exercises, allTimeStats, levelChallenges, bossBattles }: Props) {
+export default function AppClient({ user, stats: initialStats, exercises: initialExercises, allTimeStats: initialAllTimeStats, levelChallenges, bossBattles, totalExerciseCount }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('home');
   const [screen, setScreen] = useState<Screen>('tab');
@@ -1319,14 +1341,52 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
   const [lastXP, setLastXP] = useState(0);
   const [sessionLevelUps, setSessionLevelUps] = useState<{ attribute: string; level: number }[]>([]);
   const [sessionStreakMessage, setSessionStreakMessage] = useState<string | null>(null);
+  const [sessionNewlyUnlocked, setSessionNewlyUnlocked] = useState(0);
   const [challengeXpEarned, setChallengeXpEarned] = useState(0);
   const [bossResult, setBossResult] = useState<{ passed: boolean; medal: string | null; xpReward: number } | null>(null);
   const [stats, setStats] = useState(initialStats);
+  const [allTimeStats, setAllTimeStats] = useState(initialAllTimeStats);
+  const [exercises, setExercises] = useState(initialExercises);
 
   const refreshStats = async () => {
     const supabase = createClient();
     const { data } = await supabase.from('user_stats').select('*').eq('user_id', user.id).single();
     if (data) setStats(data);
+    return data;
+  };
+
+  // Movements unlocked (the `exercises` list) are filtered server-side by
+  // attribute level at page load — like All-Time Stats, they'd stay frozen
+  // after a workout unless explicitly refetched. Returns how many NEW
+  // exercises became available compared to the current list, so the caller
+  // can show a "you unlocked new movements" popup when it's > 0.
+  const refreshExercises = async (newMaxLevel: number) => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('exercises')
+      .select('*')
+      .lte('unlock_level', newMaxLevel)
+      .order('unlock_level', { ascending: true });
+    const newCount = data ? data.length - exercises.length : 0;
+    if (data) setExercises(data);
+    return Math.max(0, newCount);
+  };
+
+  // All-Time Stats (time trained, kg lifted, workouts completed) are only
+  // fetched server-side on initial page load — without this, they'd stay
+  // frozen at whatever they were when the page loaded, even after
+  // finishing a new workout in the same session.
+  const refreshAllTimeStats = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.rpc('get_alltime_stats', { p_user_id: user.id });
+    const row = data?.[0];
+    if (row) {
+      setAllTimeStats({
+        totalWorkouts: row.total_workouts ?? 0,
+        totalKg: row.total_kg ?? 0,
+        totalSeconds: row.total_seconds ?? 0,
+      });
+    }
   };
 
   const handleLogout = async () => {
@@ -1345,10 +1405,16 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
       const popups = detectSessionPopups(previousStats, data);
       setSessionLevelUps(popups.levelUps);
       setSessionStreakMessage(popups.streakMessage);
+
+      const newMaxLevel = Math.max(data.level_strength, data.level_mobility, data.level_conditioning);
+      const newlyUnlocked = await refreshExercises(newMaxLevel);
+      setSessionNewlyUnlocked(newlyUnlocked);
     } else {
       setSessionLevelUps([]);
       setSessionStreakMessage(null);
+      setSessionNewlyUnlocked(0);
     }
+    await refreshAllTimeStats();
     setScreen('complete');
   };
 
@@ -1402,7 +1468,7 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
   if (screen === 'generator') return (
     <>
       <GlobalStyle />
-      <GeneratorScreen exercises={exercises} onBack={() => setScreen('tab')}
+      <GeneratorScreen exercises={exercises} totalExerciseCount={totalExerciseCount} onBack={() => setScreen('tab')}
         onStart={(exs) => {
           setSessionExercises(exs);
           const skip = typeof window !== 'undefined' && window.localStorage.getItem('wodxp_skip_safety_notice') === '1';
@@ -1426,7 +1492,7 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
   if (screen === 'complete') return (
     <>
       <GlobalStyle />
-      <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} onHome={() => { setScreen('tab'); setTab('home'); }} />
+      <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} newlyUnlocked={sessionNewlyUnlocked} onHome={() => { setScreen('tab'); setTab('home'); }} />
     </>
   );
 
@@ -1436,6 +1502,7 @@ export default function AppClient({ user, stats: initialStats, exercises, allTim
       user={user} stats={stats} onGenerate={() => setScreen('generator')}
       onChallenge={() => setScreen('challenge')} onBoss={() => setScreen('boss')}
       levelChallenges={levelChallenges} bossBattles={bossBattles}
+      unlockedCount={exercises.length} totalCount={totalExerciseCount}
     />
   );
   else if (tab === 'train') content = (
