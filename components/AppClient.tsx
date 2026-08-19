@@ -42,9 +42,16 @@ interface BossBattle {
   xp_reward: number;
 }
 interface AllTimeStats { totalWorkouts: number; totalKg: number; totalSeconds: number; }
+interface ClassicWod {
+  slot: number; name: string; unlock_level: number; description: string | null;
+  structure: BossExercise[] | null; time_cap_seconds: number | null;
+  medal_bronze_seconds: number | null; medal_silver_seconds: number | null; medal_gold_seconds: number | null;
+  is_ready: boolean;
+}
 interface Props {
   user: User; stats: UserStats; exercises: Exercise[]; allTimeStats: AllTimeStats;
   levelChallenges: LevelChallenge[]; bossBattles: BossBattle[]; totalExerciseCount: number;
+  classicWods: ClassicWod[];
 }
 
 // ─── Design tokens (neon-on-dark) ─────────────────────────────────────────────
@@ -643,6 +650,62 @@ function BossResultScreen({ result, bossName, onHome }: {
       <button onClick={onHome} className="mt-8 w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
         Back to Home
       </button>
+    </div>
+  );
+}
+
+/**
+ * WOD XP tab — 15 classic CrossFit benchmark WODs as an optional side
+ * track, separate from the main Level/Boss progression. Locked slots
+ * (overall level hasn't reached their unlock_level yet) render dimmed
+ * with a dark overlay; unlocked ones render clearly and are tappable.
+ */
+function WodXpScreen({ stats, classicWods, onOpenWod }: { stats: UserStats; classicWods: ClassicWod[]; onOpenWod: (wod: ClassicWod) => void }) {
+  return (
+    <div className="min-h-screen pb-24" style={{ backgroundColor: C.bg }}>
+      <header className="px-5 pt-6 pb-4">
+        <p className="text-xs uppercase tracking-wider" style={{ color: C.conditioning }}>Side Track</p>
+        <h1 className="text-2xl font-bold" style={SG}>WOD XP</h1>
+        <p className="mt-1 text-sm" style={{ color: C.muted }}>
+          15 classic benchmark workouts. Optional — clearing these never blocks your main progression.
+        </p>
+      </header>
+
+      <div className="flex flex-col gap-3 px-5">
+        {classicWods.map((wod) => {
+          const isUnlocked = stats.level >= wod.unlock_level;
+          return (
+            <button
+              key={wod.slot}
+              onClick={() => isUnlocked && wod.is_ready && onOpenWod(wod)}
+              disabled={!isUnlocked || !wod.is_ready}
+              className="relative flex items-center gap-3 overflow-hidden rounded-2xl border p-4 text-left transition-transform active:scale-[0.98]"
+              style={{
+                borderColor: isUnlocked ? `${C.conditioning}55` : C.border,
+                backgroundColor: isUnlocked ? `${C.conditioning}0F` : C.surface,
+              }}
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: isUnlocked ? `${C.conditioning}22` : C.raised }}>
+                {isUnlocked ? <Award size={22} color={C.conditioning} style={{ filter: `drop-shadow(0 0 5px ${C.conditioning})` }} /> : <Lock size={20} style={{ color: C.muted }} />}
+              </div>
+              <div className="flex-1">
+                <p className="font-bold" style={{ color: isUnlocked ? C.text : C.muted, ...SG }}>
+                  {isUnlocked ? wod.name : `Unlocks at Lv ${wod.unlock_level}`}
+                </p>
+                <p className="text-xs" style={{ color: C.muted }}>
+                  {isUnlocked ? (wod.is_ready ? (wod.description ?? 'Tap to view') : 'Coming soon') : `Reach Quest Lv ${wod.unlock_level} to unlock`}
+                </p>
+              </div>
+              {isUnlocked && wod.is_ready && <ChevronRight size={18} style={{ color: C.muted }} />}
+
+              {/* Dim overlay for locked slots — a dark film over the whole card */}
+              {!isUnlocked && (
+                <div className="pointer-events-none absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.55)' }} />
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1442,10 +1505,10 @@ function ProfileMenu({ username, onLogout, onPrivacy, allTimeStats }: { username
 }
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
-type Tab = 'home' | 'train' | 'exercises' | 'stats' | 'profile';
+type Tab = 'home' | 'exercises' | 'wodxp' | 'stats' | 'profile';
 type Screen = 'tab' | 'generator' | 'safety' | 'workout' | 'complete' | 'challenge' | 'boss' | 'challenge-result' | 'boss-result';
 
-export default function AppClient({ user, stats: initialStats, exercises: initialExercises, allTimeStats: initialAllTimeStats, levelChallenges, bossBattles, totalExerciseCount }: Props) {
+export default function AppClient({ user, stats: initialStats, exercises: initialExercises, allTimeStats: initialAllTimeStats, levelChallenges, bossBattles, totalExerciseCount, classicWods }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('home');
   const [screen, setScreen] = useState<Screen>('tab');
@@ -1535,8 +1598,8 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'home', label: 'Home' },
-    { key: 'train', label: 'Train' },
     { key: 'exercises', label: 'Exercises' },
+    { key: 'wodxp', label: 'WOD XP' },
     { key: 'stats', label: 'Stats' },
     { key: 'profile', label: 'Profile' },
   ];
@@ -1622,15 +1685,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
       unlockedCount={exercises.length} totalCount={totalExerciseCount}
     />
   );
-  else if (tab === 'train') content = (
-    <div className="flex min-h-screen flex-col items-center justify-center px-5 text-center" style={{ backgroundColor: C.bg }}>
-      <Sparkles size={40} style={{ color: C.xp, filter: `drop-shadow(0 0 8px ${C.xp})` }} />
-      <h1 className="mt-4 text-2xl font-bold" style={SG}>Ready to train?</h1>
-      <button onClick={() => setScreen('generator')} className="mt-6 flex items-center gap-2 rounded-2xl px-6 py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
-        <Sparkles size={20} /> Generate Workout
-      </button>
-    </div>
-  );
+  else if (tab === 'wodxp') content = <WodXpScreen stats={stats} classicWods={classicWods} onOpenWod={() => {}} />;
   else if (tab === 'exercises') content = <ExercisesScreen exercises={exercises} />;
   else if (tab === 'stats') content = <StatsScreen stats={stats} />;
   else if (tab === 'profile') content = <ProfileMenu username={user.username} onLogout={handleLogout} onPrivacy={() => router.push('/privacy')} allTimeStats={allTimeStats} />;
@@ -1640,12 +1695,15 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
       <GlobalStyle />
       {content}
       <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around border-t px-2 py-3" style={{ backgroundColor: C.surface, borderColor: C.border }}>
-        {tabs.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)} className="flex flex-col items-center gap-1 px-3 py-1" style={{ color: tab === t.key ? C.xp : C.muted }}>
-            <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tab === t.key ? C.xp : 'transparent', boxShadow: tab === t.key ? `0 0 6px ${C.xp}` : 'none' }} />
-            <span className="text-[10px] font-medium uppercase tracking-wide">{t.label}</span>
-          </button>
-        ))}
+        {tabs.map((t) => {
+          const activeColor = t.key === 'wodxp' ? C.conditioning : C.xp;
+          return (
+            <button key={t.key} onClick={() => setTab(t.key)} className="flex flex-col items-center gap-1 px-3 py-1" style={{ color: tab === t.key ? activeColor : C.muted }}>
+              <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tab === t.key ? activeColor : 'transparent', boxShadow: tab === t.key ? `0 0 6px ${activeColor}` : 'none' }} />
+              <span className="text-[10px] font-medium uppercase tracking-wide">{t.label}</span>
+            </button>
+          );
+        })}
       </nav>
     </div>
   );
