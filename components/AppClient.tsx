@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { motion } from 'motion/react';
 import {
   Flame, ChevronRight, Search, Lock, Trophy, Swords, Plus, Crown,
   TrendingUp, Award, Sparkles, Target, Clock, Gauge,
@@ -97,6 +98,25 @@ function getLevelProgress(stats: UserStats, levelChallenges: LevelChallenge[], b
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 const SG = { fontFamily: "'Oswald', sans-serif" };
 const MO = { fontFamily: "'JetBrains Mono', monospace" };
+
+/**
+ * Wraps a screen's content with a soft fade + slide-up entrance whenever it
+ * mounts. This is a first, low-risk pass at "page transitions" — it doesn't
+ * yet animate the OUTGOING screen (that needs AnimatePresence around a
+ * single conditional render point, which is a bigger structural change to
+ * revisit in the broader animation pass).
+ */
+function PageTransition({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: 'easeOut' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 /** Renders the correct category+equipment icon for an exercise, with a neon glow. */
 function ExerciseIcon({ exercise, size = 40 }: { exercise: Exercise; size?: number }) {
@@ -1830,16 +1850,20 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     return (
       <>
         <GlobalStyle />
-        <LevelChallengeScreen challenge={progress.challenge} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
-          onComplete={async (xp) => { setChallengeXpEarned(xp); await refreshStats(); setScreen('challenge-result'); }}
-          onFail={() => setScreen('tab')} />
+        <PageTransition key={screen}>
+          <LevelChallengeScreen challenge={progress.challenge} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
+            onComplete={async (xp) => { setChallengeXpEarned(xp); await refreshStats(); setScreen('challenge-result'); }}
+            onFail={() => setScreen('tab')} />
+        </PageTransition>
       </>
     );
   }
   if (screen === 'challenge-result') return (
     <>
       <GlobalStyle />
-      <ChallengeResultScreen xpEarned={challengeXpEarned} onHome={() => { setScreen('tab'); setTab('home'); }} />
+      <PageTransition key={screen}>
+        <ChallengeResultScreen xpEarned={challengeXpEarned} onHome={() => { setScreen('tab'); setTab('home'); }} />
+      </PageTransition>
     </>
   );
   if (screen === 'boss') {
@@ -1848,8 +1872,10 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     return (
       <>
         <GlobalStyle />
-        <BossBattleScreen boss={progress.boss} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
-          onComplete={async (result) => { setBossResult(result); await refreshStats(); setScreen('boss-result'); }} />
+        <PageTransition key={screen}>
+          <BossBattleScreen boss={progress.boss} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
+            onComplete={async (result) => { setBossResult(result); await refreshStats(); setScreen('boss-result'); }} />
+        </PageTransition>
       </>
     );
   }
@@ -1858,52 +1884,66 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     return (
       <>
         <GlobalStyle />
-        <BossResultScreen result={bossResult} bossName={progress.boss?.name ?? bossBattles.find((b) => b.level === stats.level)?.name ?? 'Boss'} onHome={() => { setScreen('tab'); setTab('home'); }} />
+        <PageTransition key={screen}>
+          <BossResultScreen result={bossResult} bossName={progress.boss?.name ?? bossBattles.find((b) => b.level === stats.level)?.name ?? 'Boss'} onHome={() => { setScreen('tab'); setTab('home'); }} />
+        </PageTransition>
       </>
     );
   }
   if (screen === 'wod-detail' && selectedWod) return (
     <>
       <GlobalStyle />
-      <WodDetailScreen wod={selectedWod} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
-        onComplete={async (result) => { setWodResult(result); await refreshWodSummary(); setScreen('wod-result'); }} />
+      <PageTransition key={screen}>
+        <WodDetailScreen wod={selectedWod} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
+          onComplete={async (result) => { setWodResult(result); await refreshWodSummary(); setScreen('wod-result'); }} />
+      </PageTransition>
     </>
   );
   if (screen === 'wod-result' && wodResult && selectedWod) return (
     <>
       <GlobalStyle />
-      <WodResultScreen result={wodResult} wod={selectedWod} onHome={() => { setScreen('tab'); setTab('wodxp'); }} />
+      <PageTransition key={screen}>
+        <WodResultScreen result={wodResult} wod={selectedWod} onHome={() => { setScreen('tab'); setTab('wodxp'); }} />
+      </PageTransition>
     </>
   );
   if (screen === 'generator') return (
     <>
       <GlobalStyle />
-      <GeneratorScreen exercises={exercises} totalExerciseCount={totalExerciseCount} onBack={() => setScreen('tab')}
-        onStart={(exs, durationMinutes) => {
-          setSessionExercises(exs);
-          setSessionDurationMinutes(durationMinutes);
-          const skip = typeof window !== 'undefined' && window.localStorage.getItem('wodxp_skip_safety_notice') === '1';
-          setScreen(skip ? 'workout' : 'safety');
-        }} />
+      <PageTransition key={screen}>
+        <GeneratorScreen exercises={exercises} totalExerciseCount={totalExerciseCount} onBack={() => setScreen('tab')}
+          onStart={(exs, durationMinutes) => {
+            setSessionExercises(exs);
+            setSessionDurationMinutes(durationMinutes);
+            const skip = typeof window !== 'undefined' && window.localStorage.getItem('wodxp_skip_safety_notice') === '1';
+            setScreen(skip ? 'workout' : 'safety');
+          }} />
+      </PageTransition>
     </>
   );
   if (screen === 'safety') return (
     <>
       <GlobalStyle />
-      <SafetyNoticeScreen onBack={() => setScreen('generator')} onContinue={() => setScreen('workout')} />
+      <PageTransition key={screen}>
+        <SafetyNoticeScreen onBack={() => setScreen('generator')} onContinue={() => setScreen('workout')} />
+      </PageTransition>
     </>
   );
   if (screen === 'workout') return (
     <>
       <GlobalStyle />
-      <WorkoutScreen exercises={sessionExercises} userId={user.id} durationMinutes={sessionDurationMinutes}
-        onBack={() => setScreen('tab')} onFinish={handleFinish} />
+      <PageTransition key={screen}>
+        <WorkoutScreen exercises={sessionExercises} userId={user.id} durationMinutes={sessionDurationMinutes}
+          onBack={() => setScreen('tab')} onFinish={handleFinish} />
+      </PageTransition>
     </>
   );
   if (screen === 'complete') return (
     <>
       <GlobalStyle />
-      <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} newlyUnlocked={sessionNewlyUnlocked} xpCapped={xpCapped} onHome={() => { setScreen('tab'); setTab('home'); }} />
+      <PageTransition key={screen}>
+        <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} newlyUnlocked={sessionNewlyUnlocked} xpCapped={xpCapped} onHome={() => { setScreen('tab'); setTab('home'); }} />
+      </PageTransition>
     </>
   );
 
@@ -1924,7 +1964,9 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   return (
     <div style={{ backgroundColor: C.bg }}>
       <GlobalStyle />
-      {content}
+      <PageTransition key={tab}>
+        {content}
+      </PageTransition>
       <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around border-t px-2 py-3" style={{ backgroundColor: C.surface, borderColor: C.border }}>
         {tabs.map((t) => {
           const activeColor = t.key === 'wodxp' ? C.conditioning : C.xp;
