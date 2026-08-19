@@ -45,13 +45,17 @@ interface AllTimeStats { totalWorkouts: number; totalKg: number; totalSeconds: n
 interface ClassicWod {
   slot: number; name: string; unlock_level: number; description: string | null;
   structure: BossExercise[] | null; time_cap_seconds: number | null;
-  medal_bronze_seconds: number | null; medal_silver_seconds: number | null; medal_gold_seconds: number | null;
+  wod_type: string | null; difficulty_tier: string | null;
+  scoring_type: 'time' | 'rounds' | 'points'; format_label: string | null;
+  amrap_duration_seconds: number | null;
+  medal_bronze_value: number | null; medal_silver_value: number | null; medal_gold_value: number | null;
   is_ready: boolean;
 }
+interface WodSummary { completed: number; gold: number; silver: number; bronze: number; }
 interface Props {
   user: User; stats: UserStats; exercises: Exercise[]; allTimeStats: AllTimeStats;
   levelChallenges: LevelChallenge[]; bossBattles: BossBattle[]; totalExerciseCount: number;
-  classicWods: ClassicWod[];
+  classicWods: ClassicWod[]; wodSummary: WodSummary;
 }
 
 // ─── Design tokens (neon-on-dark) ─────────────────────────────────────────────
@@ -660,7 +664,19 @@ function BossResultScreen({ result, bossName, onHome }: {
  * (overall level hasn't reached their unlock_level yet) render dimmed
  * with a dark overlay; unlocked ones render clearly and are tappable.
  */
-function WodXpScreen({ stats, classicWods, onOpenWod }: { stats: UserStats; classicWods: ClassicWod[]; onOpenWod: (wod: ClassicWod) => void }) {
+function WodXpScreen({ stats, classicWods, summary, onOpenWod }: {
+  stats: UserStats; classicWods: ClassicWod[]; summary: { completed: number; gold: number; silver: number; bronze: number };
+  onOpenWod: (wod: ClassicWod) => void;
+}) {
+  // Title tiers by gold-medal count — "WOD Master" and "Legend of the Box"
+  // are the two named tiers from the spec; the ones in between are a
+  // reasonable interpolation to fill the gap.
+  const title =
+    summary.gold >= 15 ? 'Legend of the Box' :
+    summary.gold >= 10 ? 'Elite Athlete' :
+    summary.gold >= 5 ? 'WOD Master' :
+    summary.gold >= 1 ? 'Challenger' : null;
+
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: C.bg }}>
       <header className="px-5 pt-6 pb-4">
@@ -671,7 +687,28 @@ function WodXpScreen({ stats, classicWods, onOpenWod }: { stats: UserStats; clas
         </p>
       </header>
 
-      <div className="flex flex-col gap-3 px-5">
+      <div className="px-5">
+        <div className="rounded-2xl border p-4" style={{ borderColor: `${C.conditioning}55`, backgroundColor: `${C.conditioning}0F` }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wider" style={{ color: C.muted }}>Completed</p>
+              <p className="text-lg font-bold" style={{ color: C.text, ...MO }}>{summary.completed} / 15</p>
+            </div>
+            <div className="flex gap-3 text-center">
+              <div><p className="text-lg font-bold" style={{ color: '#FFD700', ...MO }}>{summary.gold}</p><p className="text-[9px] uppercase" style={{ color: C.muted }}>Gold</p></div>
+              <div><p className="text-lg font-bold" style={{ color: '#C0C0C0', ...MO }}>{summary.silver}</p><p className="text-[9px] uppercase" style={{ color: C.muted }}>Silver</p></div>
+              <div><p className="text-lg font-bold" style={{ color: '#CD7F32', ...MO }}>{summary.bronze}</p><p className="text-[9px] uppercase" style={{ color: C.muted }}>Bronze</p></div>
+            </div>
+          </div>
+          {title && (
+            <p className="mt-3 border-t pt-3 text-center text-sm font-bold" style={{ borderColor: `${C.conditioning}33`, color: C.conditioning, ...SG }}>
+              🏆 {title}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 px-5">
         {classicWods.map((wod) => {
           const isUnlocked = stats.level >= wod.unlock_level;
           return (
@@ -693,7 +730,7 @@ function WodXpScreen({ stats, classicWods, onOpenWod }: { stats: UserStats; clas
                   {isUnlocked ? wod.name : `Unlocks at Lv ${wod.unlock_level}`}
                 </p>
                 <p className="text-xs" style={{ color: C.muted }}>
-                  {isUnlocked ? (wod.is_ready ? (wod.description ?? 'Tap to view') : 'Coming soon') : `Reach Quest Lv ${wod.unlock_level} to unlock`}
+                  {isUnlocked ? (wod.is_ready ? (wod.format_label ?? 'Tap to view') : 'Coming soon') : `Reach Quest Lv ${wod.unlock_level} to unlock`}
                 </p>
               </div>
               {isUnlocked && wod.is_ready && <ChevronRight size={18} style={{ color: C.muted }} />}
@@ -706,6 +743,181 @@ function WodXpScreen({ stats, classicWods, onOpenWod }: { stats: UserStats; clas
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function formatScoreLabel(scoringType: 'time' | 'rounds' | 'points'): string {
+  return scoringType === 'time' ? 'Time' : scoringType === 'rounds' ? 'Rounds' : 'Points';
+}
+
+function WodDetailScreen({ wod, exercises, userId, onBack, onComplete }: {
+  wod: ClassicWod; exercises: Exercise[]; userId: string; onBack: () => void;
+  onComplete: (result: { medal: string | null; scoreValue: number }) => void;
+}) {
+  const [phase, setPhase] = useState<'ready' | 'active' | 'submitting'>('ready');
+  const [viewing, setViewing] = useState<Exercise | null>(null);
+
+  // Time-scored: count UP (lower final time = better medal).
+  // Rounds/points-scored: count DOWN from the fixed work window.
+  const isCountUp = wod.scoring_type === 'time';
+  const startValue = isCountUp ? 0 : (wod.amrap_duration_seconds ?? 0);
+  const [elapsed, setElapsed] = useState(startValue);
+  const [running, setRunning] = useState(false);
+  const [scoreCount, setScoreCount] = useState(0); // rounds or points, manually tracked
+
+  React.useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      setElapsed((t) => (isCountUp ? t + 1 : Math.max(0, t - 1)));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [running, isCountUp]);
+
+  const submitAttempt = async (finalScore: number) => {
+    setRunning(false);
+    setPhase('submitting');
+    const supabase = createClient();
+    const { data: medal } = await supabase.rpc('attempt_classic_wod', {
+      p_user_id: userId, p_slot: wod.slot, p_score_value: finalScore,
+    });
+    onComplete({ medal: medal ?? null, scoreValue: finalScore });
+  };
+
+  const medalColor = { gold: '#FFD700', silver: '#C0C0C0', bronze: '#CD7F32' };
+  const typeColor = wod.wod_type === 'Hero' ? C.boss : wod.wod_type === 'Benchmark' ? C.mobility : C.conditioning;
+
+  if (phase === 'ready') {
+    return (
+      <div className="flex min-h-screen flex-col px-5 pb-8 pt-6" style={{ backgroundColor: C.bg }}>
+        <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <ArrowLeft size={16} style={{ color: C.text }} />
+        </button>
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <Award size={40} color={C.conditioning} style={{ filter: `drop-shadow(0 0 8px ${C.conditioning})` }} />
+          <div className="mt-3 flex items-center gap-2">
+            {wod.wod_type && <span className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ backgroundColor: `${typeColor}22`, color: typeColor }}>{wod.wod_type}</span>}
+            {wod.difficulty_tier && <span className="text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>{wod.difficulty_tier}</span>}
+          </div>
+          <h1 className="mt-1 text-3xl font-bold" style={SG}>{wod.name}</h1>
+          <p className="mt-1 text-sm font-semibold" style={{ color: C.conditioning }}>{wod.format_label}</p>
+          <p className="mt-3 max-w-sm text-sm leading-relaxed" style={{ color: C.text }}>{wod.description}</p>
+
+          <div className="mt-6 w-full max-w-sm rounded-2xl border p-4 text-left" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+            <ul className="flex flex-col gap-1.5">
+              {(wod.structure ?? []).map((ex, i) => {
+                const linked = findExerciseByName(exercises, ex.exercise_name);
+                return (
+                  <li key={i}>
+                    <button onClick={() => linked && setViewing(linked)} disabled={!linked}
+                      className="flex w-full items-center justify-between text-left text-sm" style={{ color: C.text }}>
+                      <span>{formatBossExercise(ex)}</span>
+                      {linked && <ChevronRight size={14} style={{ color: C.mobility }} />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div className="mt-4 w-full max-w-sm rounded-2xl border p-4" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>Medals</p>
+            <div className="mt-2 flex justify-around text-center text-xs">
+              <div><p style={{ color: medalColor.gold }}>🥇 Gold</p><p style={{ color: C.muted, ...MO }}>{wod.scoring_type === 'time' ? `< ${formatTimer(wod.medal_gold_value ?? 0)}` : `${wod.medal_gold_value}+`}</p></div>
+              <div><p style={{ color: medalColor.silver }}>🥈 Silver</p><p style={{ color: C.muted, ...MO }}>{wod.scoring_type === 'time' ? `< ${formatTimer(wod.medal_silver_value ?? 0)}` : `${wod.medal_silver_value}+`}</p></div>
+              <div><p style={{ color: medalColor.bronze }}>🥉 Bronze</p><p style={{ color: C.muted, ...MO }}>{wod.scoring_type === 'time' ? `< ${formatTimer(wod.medal_bronze_value ?? 0)}` : `${wod.medal_bronze_value}+`}</p></div>
+            </div>
+          </div>
+
+          <div className="mt-4 w-full max-w-sm rounded-2xl border p-4" style={{ borderColor: C.conditioning, backgroundColor: `${C.conditioning}0F` }}>
+            <p className="text-sm font-bold" style={{ color: C.conditioning, ...SG }}>Optional & harder than Boss Challenges</p>
+            <p className="mt-1 text-xs leading-relaxed" style={{ color: C.text }}>Train smart. Scale movements or weight as needed — earning any medal is a real achievement.</p>
+          </div>
+        </div>
+        <button onClick={() => { setPhase('active'); setRunning(true); }}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98]"
+          style={{ backgroundColor: C.conditioning, color: '#1A0E0C', ...SG }}>
+          <Award size={20} /> Start {wod.name}
+        </button>
+        {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
+      </div>
+    );
+  }
+
+  if (phase === 'submitting') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-5" style={{ backgroundColor: C.bg }}>
+        <p className="text-sm" style={{ color: C.muted }}>Saving your result…</p>
+      </div>
+    );
+  }
+
+  // phase === 'active'
+  return (
+    <div className="flex min-h-screen flex-col px-5 pb-8 pt-6" style={{ backgroundColor: C.bg }}>
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <ArrowLeft size={16} style={{ color: C.text }} />
+        </button>
+        <p className="text-sm font-bold" style={{ color: C.conditioning, ...SG }}>{wod.name}</p>
+        <div style={{ width: 36 }} />
+      </div>
+
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <p className="text-6xl font-bold" style={{ color: C.text, ...MO }}>{formatTimer(elapsed)}</p>
+        <p className="mt-1 text-xs uppercase tracking-wider" style={{ color: C.muted }}>
+          {isCountUp ? 'Elapsed' : 'Time remaining'}
+        </p>
+
+        {!isCountUp && (
+          <div className="mt-6 flex items-center gap-4">
+            <button onClick={() => setScoreCount((r) => Math.max(0, r - 1))} className="flex h-10 w-10 items-center justify-center rounded-full border" style={{ borderColor: C.border, color: C.text }}><Minus size={16} /></button>
+            <div className="text-center">
+              <p className="text-3xl font-bold" style={{ color: C.conditioning, ...MO }}>{scoreCount}</p>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>{formatScoreLabel(wod.scoring_type)}</p>
+            </div>
+            <button onClick={() => setScoreCount((r) => r + 1)} className="flex h-10 w-10 items-center justify-center rounded-full border" style={{ borderColor: C.border, color: C.text }}><Plus size={16} /></button>
+          </div>
+        )}
+
+        <button onClick={() => setRunning((r) => !r)} className="mt-4 rounded-full border px-6 py-2 text-sm font-bold" style={{ borderColor: C.border, color: C.text, ...SG }}>
+          {running ? 'Pause' : 'Resume'}
+        </button>
+      </div>
+
+      <button onClick={() => submitAttempt(isCountUp ? elapsed : scoreCount)}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
+        style={{ backgroundColor: C.conditioning, color: '#1A0E0C', ...SG }}>
+        <Check size={20} strokeWidth={3} /> Finish & Submit
+      </button>
+    </div>
+  );
+}
+
+function WodResultScreen({ result, wod, onHome }: {
+  result: { medal: string | null; scoreValue: number }; wod: ClassicWod; onHome: () => void;
+}) {
+  const medalEmoji = result.medal === 'gold' ? '🥇' : result.medal === 'silver' ? '🥈' : result.medal === 'bronze' ? '🥉' : null;
+  const scoreDisplay = wod.scoring_type === 'time' ? formatTimer(result.scoreValue) : `${result.scoreValue} ${formatScoreLabel(wod.scoring_type).toLowerCase()}`;
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-5 text-center" style={{ backgroundColor: C.bg }}>
+      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full"
+        style={{ backgroundColor: result.medal ? `${C.conditioning}1F` : `${C.border}66`, border: `2px solid ${result.medal ? C.conditioning : C.border}` }}>
+        {medalEmoji ? <span className="text-5xl">{medalEmoji}</span> : <Award size={44} style={{ color: C.muted }} />}
+      </div>
+      <h1 className="text-3xl font-bold" style={SG}>{result.medal ? `${wod.name} Complete!` : `${wod.name} Logged`}</h1>
+      <p className="mt-2" style={{ color: C.muted }}>Your score: <span style={MO}>{scoreDisplay}</span></p>
+
+      {!result.medal && (
+        <p className="mt-4 max-w-sm text-sm leading-relaxed" style={{ color: C.text }}>
+          No medal this time — but your attempt is saved. Come back and try to beat it whenever you're ready.
+        </p>
+      )}
+
+      <button onClick={onHome} className="mt-8 w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.conditioning, color: '#1A0E0C', ...SG }}>
+        Back to WOD XP
+      </button>
     </div>
   );
 }
@@ -1506,9 +1718,9 @@ function ProfileMenu({ username, onLogout, onPrivacy, allTimeStats }: { username
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
 type Tab = 'home' | 'exercises' | 'wodxp' | 'stats' | 'profile';
-type Screen = 'tab' | 'generator' | 'safety' | 'workout' | 'complete' | 'challenge' | 'boss' | 'challenge-result' | 'boss-result';
+type Screen = 'tab' | 'generator' | 'safety' | 'workout' | 'complete' | 'challenge' | 'boss' | 'challenge-result' | 'boss-result' | 'wod-detail' | 'wod-result';
 
-export default function AppClient({ user, stats: initialStats, exercises: initialExercises, allTimeStats: initialAllTimeStats, levelChallenges, bossBattles, totalExerciseCount, classicWods }: Props) {
+export default function AppClient({ user, stats: initialStats, exercises: initialExercises, allTimeStats: initialAllTimeStats, levelChallenges, bossBattles, totalExerciseCount, classicWods, wodSummary: initialWodSummary }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('home');
   const [screen, setScreen] = useState<Screen>('tab');
@@ -1524,6 +1736,16 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   const [stats, setStats] = useState(initialStats);
   const [allTimeStats, setAllTimeStats] = useState(initialAllTimeStats);
   const [exercises, setExercises] = useState(initialExercises);
+  const [wodSummary, setWodSummary] = useState(initialWodSummary);
+  const [selectedWod, setSelectedWod] = useState<ClassicWod | null>(null);
+  const [wodResult, setWodResult] = useState<{ medal: string | null; scoreValue: number } | null>(null);
+
+  const refreshWodSummary = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.rpc('get_wod_summary', { p_user_id: user.id });
+    const row = data?.[0];
+    if (row) setWodSummary({ completed: row.completed ?? 0, gold: row.gold ?? 0, silver: row.silver ?? 0, bronze: row.bronze ?? 0 });
+  };
 
   const refreshStats = async () => {
     const supabase = createClient();
@@ -1644,6 +1866,19 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
       </>
     );
   }
+  if (screen === 'wod-detail' && selectedWod) return (
+    <>
+      <GlobalStyle />
+      <WodDetailScreen wod={selectedWod} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
+        onComplete={async (result) => { setWodResult(result); await refreshWodSummary(); setScreen('wod-result'); }} />
+    </>
+  );
+  if (screen === 'wod-result' && wodResult && selectedWod) return (
+    <>
+      <GlobalStyle />
+      <WodResultScreen result={wodResult} wod={selectedWod} onHome={() => { setScreen('tab'); setTab('wodxp'); }} />
+    </>
+  );
   if (screen === 'generator') return (
     <>
       <GlobalStyle />
@@ -1685,7 +1920,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
       unlockedCount={exercises.length} totalCount={totalExerciseCount}
     />
   );
-  else if (tab === 'wodxp') content = <WodXpScreen stats={stats} classicWods={classicWods} onOpenWod={() => {}} />;
+  else if (tab === 'wodxp') content = <WodXpScreen stats={stats} classicWods={classicWods} summary={wodSummary} onOpenWod={(wod) => { setSelectedWod(wod); setScreen('wod-detail'); }} />;
   else if (tab === 'exercises') content = <ExercisesScreen exercises={exercises} />;
   else if (tab === 'stats') content = <StatsScreen stats={stats} />;
   else if (tab === 'profile') content = <ProfileMenu username={user.username} onLogout={handleLogout} onPrivacy={() => router.push('/privacy')} allTimeStats={allTimeStats} />;
