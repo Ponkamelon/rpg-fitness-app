@@ -10,7 +10,7 @@ export default async function HomePage() {
   if (!user) redirect('/login');
 
   // Fetch user profile + stats + all-time totals in parallel
-  const [{ data: profile }, { data: stats }, { data: allTimeStatsRows }, { data: levelChallenges }, { data: bossBattles }, { count: totalExerciseCount }, { data: classicWods }] = await Promise.all([
+  const [{ data: profile }, { data: stats }, { data: allTimeStatsRows }, { data: levelChallenges }, { data: bossBattles }, { count: totalExerciseCount }, { data: classicWods }, { data: wodSummaryRows }] = await Promise.all([
     supabase.from('users').select('*').eq('id', user.id).single(),
     supabase.from('user_stats').select('*').eq('user_id', user.id).single(),
     supabase.rpc('get_alltime_stats', { p_user_id: user.id }),
@@ -18,7 +18,10 @@ export default async function HomePage() {
     supabase.from('boss_battles').select('*').order('level', { ascending: true }),
     supabase.from('exercises').select('*', { count: 'exact', head: true }),
     supabase.from('classic_wods').select('*').order('slot', { ascending: true }),
+    supabase.rpc('get_wod_summary', { p_user_id: user.id }),
   ]);
+
+  const wodSummary = wodSummaryRows?.[0] ?? { completed: 0, gold: 0, silver: 0, bronze: 0 };
 
   const allTimeStats = allTimeStatsRows?.[0] ?? { total_workouts: 0, total_kg: 0, total_seconds: 0 };
 
@@ -53,6 +56,12 @@ export default async function HomePage() {
       bossBattles={bossBattles ?? []}
       totalExerciseCount={totalExerciseCount ?? 0}
       classicWods={classicWods ?? []}
+      wodSummary={{
+        completed: wodSummary.completed ?? 0,
+        gold: wodSummary.gold ?? 0,
+        silver: wodSummary.silver ?? 0,
+        bronze: wodSummary.bronze ?? 0,
+      }}
     />
   );
 }
