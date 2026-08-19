@@ -28,12 +28,13 @@ interface Exercise {
   xp_value: number; default_sets: number; default_reps: number;
   default_weight_kg: number; illustration_url?: string; instructions?: string;
 }
+interface BossExercise { exercise_name: string; reps?: number; duration_seconds?: number; }
 interface LevelChallenge {
   level: number; name: string; description: string; exercise_name: string | null;
   target_reps: number | null; target_duration_seconds: number | null;
+  structure: BossExercise[] | null; time_cap_seconds: number | null;
   equipment: string[]; scaled_description: string | null; xp_reward: number;
 }
-interface BossExercise { exercise_name: string; reps: number; }
 interface BossBattle {
   level: number; name: string; description: string; rounds: number;
   structure: BossExercise[]; scaled_structure: BossExercise[] | null;
@@ -297,15 +298,32 @@ function findExerciseByName(exercises: Exercise[], name: string | null | undefin
   return exercises.find((e) => e.name === name) ?? null;
 }
 
-function LevelChallengeScreen({ challenge, exercises, userId, onBack, onComplete }: {
-  challenge: LevelChallenge; exercises: Exercise[]; userId: string; onBack: () => void; onComplete: (xpReward: number) => void;
+function LevelChallengeScreen({ challenge, exercises, userId, onBack, onComplete, onFail }: {
+  challenge: LevelChallenge; exercises: Exercise[]; userId: string; onBack: () => void;
+  onComplete: (xpReward: number) => void; onFail: () => void;
 }) {
   const [usedScaled, setUsedScaled] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [viewing, setViewing] = useState<Exercise | null>(null);
-  const linkedExercise = findExerciseByName(exercises, challenge.exercise_name);
 
-  const handleComplete = async () => {
+  // Countdown timer: used for timed holds (target_duration_seconds, e.g. a
+  // Plank) or as a "finish within" reference clock (time_cap_seconds) for
+  // rep-based or combo challenges.
+  const countdownFrom = challenge.target_duration_seconds ?? challenge.time_cap_seconds ?? null;
+  const [timeLeft, setTimeLeft] = useState(countdownFrom ?? 0);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerStarted, setTimerStarted] = useState(false);
+
+  React.useEffect(() => {
+    if (!timerRunning || timeLeft <= 0) return;
+    const id = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(id);
+  }, [timerRunning, timeLeft]);
+
+  const isCombo = challenge.structure != null && challenge.structure.length > 0;
+  const linkedExercise = !isCombo ? findExerciseByName(exercises, challenge.exercise_name) : null;
+
+  const handlePass = async () => {
     setSubmitting(true);
     const supabase = createClient();
     const { error } = await supabase.rpc('clear_level_challenge', {
@@ -329,10 +347,48 @@ function LevelChallengeScreen({ challenge, exercises, userId, onBack, onComplete
         <h1 className="mt-1 text-2xl font-bold" style={SG}>{challenge.name}</h1>
         <p className="mt-3 max-w-sm text-base leading-relaxed" style={{ color: C.text }}>{challenge.description}</p>
 
+        {isCombo && (
+          <div className="mt-4 w-full max-w-sm rounded-2xl border p-4 text-left" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+            <ul className="flex flex-col gap-1.5">
+              {challenge.structure!.map((ex, i) => {
+                const linked = findExerciseByName(exercises, ex.exercise_name);
+                return (
+                  <li key={i}>
+                    <button onClick={() => linked && setViewing(linked)} disabled={!linked}
+                      className="flex w-full items-center justify-between text-left text-sm" style={{ color: C.text }}>
+                      <span>{formatBossExercise(ex)}</span>
+                      {linked && <ChevronRight size={14} style={{ color: C.mobility }} />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {linkedExercise && (
           <button onClick={() => setViewing(linkedExercise)} className="mt-3 flex items-center gap-1.5 text-sm font-semibold" style={{ color: C.mobility }}>
             <ChevronRight size={14} /> How do I do this?
           </button>
+        )}
+
+        {countdownFrom != null && (
+          <div className="mt-6 flex flex-col items-center">
+            <p className="text-5xl font-bold" style={{ color: timeLeft === 0 && timerStarted ? C.boss : C.text, ...MO }}>{formatTimer(timeLeft)}</p>
+            <p className="mt-1 text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>
+              {challenge.target_duration_seconds != null ? 'Hold time' : 'Time cap'}
+            </p>
+            {!timerStarted ? (
+              <button onClick={() => { setTimerStarted(true); setTimerRunning(true); }}
+                className="mt-3 rounded-full px-6 py-2 text-sm font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+                Start Exercise
+              </button>
+            ) : (
+              <button onClick={() => setTimerRunning((r) => !r)} className="mt-3 rounded-full border px-6 py-2 text-sm font-bold" style={{ borderColor: C.border, color: C.text, ...SG }}>
+                {timerRunning ? 'Pause' : 'Resume'}
+              </button>
+            )}
+          </div>
         )}
 
         {challenge.scaled_description && (
@@ -345,11 +401,16 @@ function LevelChallengeScreen({ challenge, exercises, userId, onBack, onComplete
         <p className="mt-4 text-xs" style={{ color: C.muted }}>Reward: <span style={{ color: C.xp, ...MO }}>+{challenge.xp_reward} XP</span></p>
       </div>
 
-      <button onClick={handleComplete} disabled={submitting}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98] disabled:opacity-60"
-        style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
-        {submitting ? 'Saving…' : 'Mark Complete'}
-      </button>
+      <div className="flex flex-col gap-2">
+        <button onClick={handlePass} disabled={submitting}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98] disabled:opacity-60"
+          style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+          {submitting ? 'Saving…' : 'Pass'}
+        </button>
+        <button onClick={onFail} disabled={submitting} className="w-full rounded-2xl border py-3 text-sm font-bold disabled:opacity-60" style={{ borderColor: C.border, color: C.muted, ...SG }}>
+          Fail — Try Again Later
+        </button>
+      </div>
       {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
@@ -359,6 +420,13 @@ function formatTimer(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+/** Formats one line of a combo/boss structure, whichever unit it uses. */
+function formatBossExercise(ex: BossExercise): string {
+  if (ex.reps != null) return `${ex.reps} ${ex.exercise_name}`;
+  if (ex.duration_seconds != null) return `${ex.duration_seconds} sec ${ex.exercise_name}`;
+  return ex.exercise_name;
 }
 
 function BossBattleScreen({ boss, exercises, userId, onBack, onComplete }: {
@@ -415,7 +483,7 @@ function BossBattleScreen({ boss, exercises, userId, onBack, onComplete }: {
                       className="flex w-full items-center justify-between text-left text-sm"
                       style={{ color: C.text }}
                     >
-                      <span>{ex.reps} {ex.exercise_name}</span>
+                      <span>{formatBossExercise(ex)}</span>
                       {linked && <ChevronRight size={14} style={{ color: C.mobility }} />}
                     </button>
                   </li>
@@ -488,7 +556,7 @@ function BossBattleScreen({ boss, exercises, userId, onBack, onComplete }: {
                     className="flex w-full items-center justify-between text-left text-sm"
                     style={{ color: C.text }}
                   >
-                    <span>{ex.reps} {ex.exercise_name}</span>
+                    <span>{formatBossExercise(ex)}</span>
                     {linked && <ChevronRight size={14} style={{ color: C.mobility }} />}
                   </button>
                 </li>
@@ -1482,7 +1550,8 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
       <>
         <GlobalStyle />
         <LevelChallengeScreen challenge={progress.challenge} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
-          onComplete={async (xp) => { setChallengeXpEarned(xp); await refreshStats(); setScreen('challenge-result'); }} />
+          onComplete={async (xp) => { setChallengeXpEarned(xp); await refreshStats(); setScreen('challenge-result'); }}
+          onFail={() => setScreen('tab')} />
       </>
     );
   }
