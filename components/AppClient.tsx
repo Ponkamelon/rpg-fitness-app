@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Flame, ChevronRight, Search, Lock, Trophy, Swords, Plus, Crown,
   TrendingUp, Award, Sparkles, Target, Clock, Gauge,
-  Minus, Check, ArrowLeft,
+  Minus, Check, ArrowLeft, User,
 } from 'lucide-react';
 import {
   CATEGORY_ICONS, CATEGORY_LABELS, EQUIPMENT_LABELS, EQUIPMENT_COLORS,
@@ -97,6 +97,41 @@ function getLevelProgress(stats: UserStats, levelChallenges: LevelChallenge[], b
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 const SG = { fontFamily: "'Oswald', sans-serif" };
 const MO = { fontFamily: "'JetBrains Mono', monospace" };
+
+/** Small dumbbell glyph — lucide-react has no built-in dumbbell icon. */
+function DumbbellIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="1.5" y="9" width="4" height="6" rx="1.2" fill="currentColor" />
+      <rect x="18.5" y="9" width="4" height="6" rx="1.2" fill="currentColor" />
+      <rect x="5.5" y="10.75" width="13" height="2.5" rx="1.25" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Small kettlebell glyph — same reasoning, no lucide equivalent. */
+function KettlebellIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M9 6.5C9 4 10.3 2 12 2C13.7 2 15 4 15 6.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+      <circle cx="12" cy="15" r="7.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Small equipment icon matching an exercise's equipment type, colored per
+ *  the brand's equipment palette (kettlebell=lime, dumbbell=orange,
+ *  bodyweight=blue). Icon-only, no label — used in list rows for a
+ *  cleaner look than the previous colored-dot + text treatment. */
+function EquipmentGlyph({ equipment, size = 14 }: { equipment: Equipment; size?: number }) {
+  const color = EQUIPMENT_COLORS[equipment];
+  const Icon = equipment === 'kettlebell' ? KettlebellIcon : equipment === 'dumbbell' ? DumbbellIcon : User;
+  return (
+    <span style={{ color }} title={EQUIPMENT_LABELS[equipment]}>
+      <Icon size={size} />
+    </span>
+  );
+}
 
 /** Renders the correct category+equipment icon for an exercise, with a neon glow. */
 function ExerciseIcon({ exercise, size = 40 }: { exercise: Exercise; size?: number }) {
@@ -1470,12 +1505,9 @@ function ExercisesScreen({ exercises }: { exercises: Exercise[] }) {
                     </span>
                     <span className="text-[10px] font-medium uppercase tracking-wider capitalize" style={{ color: C.muted }}>{ex.difficulty}</span>
                   </div>
-                  <div className="mt-1.5 flex items-center gap-1.5">
+                  <div className="mt-1.5 flex items-center gap-2">
                     {ex.equipment.map((eq) => (
-                      <span key={eq} className="flex items-center gap-1 text-[11px] font-medium capitalize" style={{ color: EQUIPMENT_COLORS[eq as Equipment] }}>
-                        <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: EQUIPMENT_COLORS[eq as Equipment] }} />
-                        {eq}
-                      </span>
+                      <EquipmentGlyph key={eq} equipment={eq as Equipment} size={14} />
                     ))}
                   </div>
                 </div>
