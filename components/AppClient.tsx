@@ -56,7 +56,7 @@ interface WodSummary { completed: number; gold: number; silver: number; bronze: 
 interface Props {
   user: User; stats: UserStats; exercises: Exercise[]; allTimeStats: AllTimeStats;
   levelChallenges: LevelChallenge[]; bossBattles: BossBattle[]; totalExerciseCount: number;
-  classicWods: ClassicWod[]; wodSummary: WodSummary;
+  classicWods: ClassicWod[]; wodSummary: WodSummary; wodMedals: Record<number, string>;
 }
 
 // ─── Design tokens (neon-on-dark) ─────────────────────────────────────────────
@@ -209,6 +209,56 @@ function ModalTransition({ children, onBackdropClick }: { children: React.ReactN
       </motion.div>
     </motion.div>
   );
+}
+
+/**
+ * Keeps the screen from sleeping/dimming while `active` is true, using the
+ * standard Screen Wake Lock API. Used during running timers (Boss Battles,
+ * Classic WODs, timed Level Challenges) so the phone doesn't lock mid-set.
+ * Fails silently on browsers without support — the timer itself still
+ * works fine, the screen just might dim on its own timeout there.
+ */
+function useWakeLock(active: boolean) {
+  const wakeLockRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    if (!active) {
+      wakeLockRef.current?.release?.().catch(() => {});
+      wakeLockRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+    const requestLock = async () => {
+      try {
+        if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+          const lock = await (navigator as any).wakeLock.request('screen');
+          if (cancelled) {
+            lock.release().catch(() => {});
+          } else {
+            wakeLockRef.current = lock;
+          }
+        }
+      } catch {
+        // Wake Lock not available/permitted here — ignore, timer still works.
+      }
+    };
+    requestLock();
+
+    // The OS releases the lock automatically when the tab is backgrounded
+    // (e.g. switching apps) — re-acquire it once the page is visible again.
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && !wakeLockRef.current) requestLock();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', handleVisibility);
+      wakeLockRef.current?.release?.().catch(() => {});
+      wakeLockRef.current = null;
+    };
+  }, [active]);
 }
 
 /** Renders the correct category+equipment icon for an exercise, with a neon glow. */
@@ -439,6 +489,7 @@ function LevelChallengeScreen({ challenge, exercises, userId, onBack, onComplete
   const [timeLeft, setTimeLeft] = useState(countdownFrom ?? 0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerStarted, setTimerStarted] = useState(false);
+  useWakeLock(timerRunning);
 
   React.useEffect(() => {
     if (!timerRunning || timeLeft <= 0) return;
@@ -564,6 +615,7 @@ function BossBattleScreen({ boss, exercises, userId, onBack, onComplete }: {
   const [running, setRunning] = useState(false);
   const [roundsDone, setRoundsDone] = useState(0);
   const [viewing, setViewing] = useState<Exercise | null>(null);
+  useWakeLock(running);
 
   React.useEffect(() => {
     if (!running) return;
@@ -846,9 +898,9 @@ function BossResultScreen({ result, bossName, onHome }: {
  * (overall level hasn't reached their unlock_level yet) render dimmed
  * with a dark overlay; unlocked ones render clearly and are tappable.
  */
-function WodXpScreen({ stats, classicWods, summary, onOpenWod }: {
+function WodXpScreen({ stats, classicWods, summary, wodMedals, onOpenWod }: {
   stats: UserStats; classicWods: ClassicWod[]; summary: { completed: number; gold: number; silver: number; bronze: number };
-  onOpenWod: (wod: ClassicWod) => void;
+  wodMedals: Record<number, string>; onOpenWod: (wod: ClassicWod) => void;
 }) {
   // Title tiers by gold-medal count — "WOD Master" and "Legend of the Box"
   // are the two named tiers from the spec; the ones in between are a
@@ -893,6 +945,9 @@ function WodXpScreen({ stats, classicWods, summary, onOpenWod }: {
       <div className="mt-4 flex flex-col gap-3 px-5">
         {classicWods.map((wod) => {
           const isUnlocked = stats.level >= wod.unlock_level;
+          const medal = wodMedals[wod.slot]; // 'gold' | 'silver' | 'bronze' | undefined
+          const medalColor = medal === 'gold' ? '#FFD700' : medal === 'silver' ? '#C0C0C0' : medal === 'bronze' ? '#CD7F32' : null;
+          const medalEmoji = medal === 'gold' ? '🥇' : medal === 'silver' ? '🥈' : medal === 'bronze' ? '🥉' : null;
           return (
             <motion.button
               key={wod.slot}
@@ -900,27 +955,37 @@ function WodXpScreen({ stats, classicWods, summary, onOpenWod }: {
               disabled={!isUnlocked || !wod.is_ready}
               className="relative flex items-center gap-3 overflow-hidden rounded-2xl border p-4 text-left"
               style={{
-                borderColor: isUnlocked ? `${C.conditioning}55` : C.border,
-                backgroundColor: isUnlocked ? `${C.conditioning}0F` : C.surface,
+                borderColor: medalColor ? `${medalColor}66` : isUnlocked ? `${C.conditioning}55` : C.border,
+                backgroundColor: medalColor ? `${medalColor}12` : isUnlocked ? `${C.conditioning}0F` : C.surface,
               }}
               animate={{ y: isUnlocked ? 0 : 0, scale: 1 }}
               whileTap={isUnlocked && wod.is_ready ? { scale: 0.98 } : undefined}
               transition={{ duration: 0.5, ease: 'easeOut' }}
             >
-              <motion.div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: isUnlocked ? `${C.conditioning}22` : C.raised }}
+              <motion.div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: medalColor ? `${medalColor}22` : isUnlocked ? `${C.conditioning}22` : C.raised }}
                 animate={{ rotate: isUnlocked ? 0 : 0 }}>
-                {isUnlocked
-                  ? <motion.span key="unlocked" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-                      <Award size={22} color={C.conditioning} style={{ filter: `drop-shadow(0 0 5px ${C.conditioning})` }} />
-                    </motion.span>
-                  : <Lock size={20} style={{ color: C.muted }} />}
+                {medalEmoji ? (
+                  <motion.span key="medal" className="text-2xl" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+                    {medalEmoji}
+                  </motion.span>
+                ) : isUnlocked ? (
+                  <motion.span key="unlocked" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+                    <Award size={22} color={C.conditioning} style={{ filter: `drop-shadow(0 0 5px ${C.conditioning})` }} />
+                  </motion.span>
+                ) : (
+                  <Lock size={20} style={{ color: C.muted }} />
+                )}
               </motion.div>
               <div className="flex-1">
                 <p className="font-bold" style={{ color: isUnlocked ? C.text : C.muted, ...SG }}>
                   {isUnlocked ? wod.name : `Unlocks at Lv ${wod.unlock_level}`}
                 </p>
                 <p className="text-xs" style={{ color: C.muted }}>
-                  {isUnlocked ? (wod.is_ready ? (wod.format_label ?? 'Tap to view') : 'Coming soon') : `Reach Quest Lv ${wod.unlock_level} to unlock`}
+                  {isUnlocked
+                    ? (wod.is_ready
+                        ? (medal ? `${medal.charAt(0).toUpperCase() + medal.slice(1)} medal earned` : (wod.format_label ?? 'Tap to view'))
+                        : 'Coming soon')
+                    : `Reach Quest Lv ${wod.unlock_level} to unlock`}
                 </p>
               </div>
               {isUnlocked && wod.is_ready && <ChevronRight size={18} style={{ color: C.muted }} />}
@@ -960,6 +1025,7 @@ function WodDetailScreen({ wod, exercises, userId, onBack, onComplete }: {
   const [elapsed, setElapsed] = useState(startValue);
   const [running, setRunning] = useState(false);
   const [scoreCount, setScoreCount] = useState(0); // rounds or points, manually tracked
+  useWakeLock(running);
 
   React.useEffect(() => {
     if (!running) return;
@@ -2086,7 +2152,7 @@ const SCREEN_DEPTH: Record<string, number> = {
   complete: 4,
 };
 
-export default function AppClient({ user, stats: initialStats, exercises: initialExercises, allTimeStats: initialAllTimeStats, levelChallenges, bossBattles, totalExerciseCount, classicWods, wodSummary: initialWodSummary }: Props) {
+export default function AppClient({ user, stats: initialStats, exercises: initialExercises, allTimeStats: initialAllTimeStats, levelChallenges, bossBattles, totalExerciseCount, classicWods, wodSummary: initialWodSummary, wodMedals }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('home');
   const [screen, setScreen] = useState<Screen>('tab');
@@ -2104,6 +2170,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   const [allTimeStats, setAllTimeStats] = useState(initialAllTimeStats);
   const [exercises, setExercises] = useState(initialExercises);
   const [wodSummary, setWodSummary] = useState(initialWodSummary);
+  const [wodMedalsState, setWodMedalsState] = useState(wodMedals);
   const [selectedWod, setSelectedWod] = useState<ClassicWod | null>(null);
   const [wodResult, setWodResult] = useState<{ medal: string | null; scoreValue: number } | null>(null);
 
@@ -2112,6 +2179,11 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     const { data } = await supabase.rpc('get_wod_summary', { p_user_id: user.id });
     const row = data?.[0];
     if (row) setWodSummary({ completed: row.completed ?? 0, gold: row.gold ?? 0, silver: row.silver ?? 0, bronze: row.bronze ?? 0 });
+
+    const { data: medalRows } = await supabase.rpc('get_user_wod_medals', { p_user_id: user.id });
+    if (medalRows) {
+      setWodMedalsState(Object.fromEntries(medalRows.map((r: { wod_slot: number; medal: string }) => [r.wod_slot, r.medal])));
+    }
   };
 
   const refreshStats = async () => {
@@ -2326,7 +2398,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
       unlockedCount={exercises.length} totalCount={totalExerciseCount}
     />
   );
-  else if (tab === 'wodxp') content = <WodXpScreen stats={stats} classicWods={classicWods} summary={wodSummary} onOpenWod={(wod) => { setSelectedWod(wod); setScreen('wod-detail'); }} />;
+  else if (tab === 'wodxp') content = <WodXpScreen stats={stats} classicWods={classicWods} summary={wodSummary} wodMedals={wodMedalsState} onOpenWod={(wod) => { setSelectedWod(wod); setScreen('wod-detail'); }} />;
   else if (tab === 'exercises') content = <ExercisesScreen exercises={exercises} />;
   else if (tab === 'stats') content = <StatsScreen stats={stats} />;
   else if (tab === 'profile') content = <ProfileMenu username={user.username} onLogout={handleLogout} onPrivacy={() => router.push('/privacy')} allTimeStats={allTimeStats} />;
