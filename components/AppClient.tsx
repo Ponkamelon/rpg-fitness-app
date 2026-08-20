@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { motion } from 'motion/react';
+import { motion, useMotionValue, animate } from 'motion/react';
 import {
   Flame, ChevronRight, Search, Lock, Trophy, Swords, Plus, Crown,
   TrendingUp, Award, Sparkles, Target, Clock, Gauge,
@@ -106,14 +106,107 @@ const MO = { fontFamily: "'JetBrains Mono', monospace" };
  * single conditional render point, which is a bigger structural change to
  * revisit in the broader animation pass).
  */
-function PageTransition({ children }: { children: React.ReactNode }) {
+/**
+ * Direction-aware page slide, per the Motion & Visual Design spec section 11:
+ * forward navigation slides in from the right (x: 16 -> 0), back navigation
+ * slides in from the left (x: -16 -> 0). Direction is inferred from a simple
+ * depth ranking per screen — deeper screens are "forward", shallower ones
+ * (like returning to the tab bar) are "back" — so call sites don't each need
+ * to declare direction explicitly.
+ */
+function PageTransition({ children, screenKey }: { children: React.ReactNode; screenKey: string }) {
+  const prevDepthRef = React.useRef(0);
+  const depth = SCREEN_DEPTH[screenKey] ?? 0;
+  const direction = depth >= prevDepthRef.current ? 1 : -1;
+  prevDepthRef.current = depth;
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: 'easeOut' }}
+      key={screenKey}
+      initial={{ opacity: 0, x: 16 * direction }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
+    </motion.div>
+  );
+}
+
+/**
+ * Animates a numeric value smoothly counting from its previous value to the
+ * new one, per spec section 14/17 ("NumberRoll rather than instant
+ * replacement"). Used for XP, attribute levels, stats, and workout counters.
+ */
+function NumberRoll({ value, className, style, duration = 0.6 }: {
+  value: number; className?: string; style?: React.CSSProperties; duration?: number;
+}) {
+  const motionValue = useMotionValue(value);
+  const [display, setDisplay] = useState(value);
+  const isFirstRender = React.useRef(true);
+
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      motionValue.set(value);
+      setDisplay(value);
+      return;
+    }
+    const controls = animate(motionValue, value, { duration, ease: 'easeOut' });
+    const unsubscribe = motionValue.on('change', (v) => setDisplay(Math.round(v)));
+    return () => { controls.stop(); unsubscribe(); };
+  }, [value]);
+
+  return <span className={className} style={style}>{display}</span>;
+}
+
+/**
+ * Shared press/release feedback for interactive buttons, per spec section 9:
+ * scale 1 -> 0.96 on press, spring release back to 1 (stiffness 450,
+ * damping 28). The static Lime glow on primary CTAs is already handled via
+ * `boxShadow` in each button's own style — an animated "glow pulse on
+ * release" is a nice P1/P2 polish item to revisit once this base motion is
+ * confirmed feeling right, rather than risk an unreliable first pass.
+ */
+function WodButtonMotion({ children, onClick, className, style, disabled }: {
+  children: React.ReactNode; onClick?: () => void; className?: string; style?: React.CSSProperties;
+  disabled?: boolean;
+}) {
+  return (
+    <motion.button
+      onClick={onClick}
+      disabled={disabled}
+      className={className}
+      style={style}
+      whileTap={disabled ? undefined : { scale: 0.96 }}
+      transition={{ type: 'spring', stiffness: 450, damping: 28 }}
+    >
+      {children}
+    </motion.button>
+  );
+}
+
+/**
+ * Shared modal shell for centered-card modals, per spec section 12: backdrop
+ * fades to 65% opacity, card springs in with a slight scale + rise. Used for
+ * Quit Workout and future reward modals (Level Up, Boss Unlock, Medal, PR).
+ */
+function ModalTransition({ children, onBackdropClick }: { children: React.ReactNode; onBackdropClick?: () => void }) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center px-5"
+      initial={{ backgroundColor: 'rgba(0,0,0,0)' }}
+      animate={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+      transition={{ duration: 0.2 }}
+      onClick={onBackdropClick}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      >
+        {children}
+      </motion.div>
     </motion.div>
   );
 }
@@ -139,12 +232,14 @@ function AttributeRing({ label, level, xp, color }: { label: string; level: numb
       <div className="relative" style={{ width: size, height: size, filter: `drop-shadow(0 0 6px ${color}66)` }}>
         <svg width={size} height={size} className="-rotate-90">
           <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={C.raised} strokeWidth={stroke} />
-          <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth={stroke}
-            strokeDasharray={circ} strokeDashoffset={circ * (1 - progress)} strokeLinecap="round"
-            style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
+          <motion.circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth={stroke}
+            strokeDasharray={circ} strokeLinecap="round"
+            initial={false}
+            animate={{ strokeDashoffset: circ * (1 - progress) }}
+            transition={{ duration: 0.6, ease: 'easeOut' }} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold" style={{ color: C.text, ...MO }}>{level}</span>
+          <NumberRoll value={level} className="text-2xl font-bold" style={{ color: C.text, ...MO }} />
           <span className="text-[9px] uppercase tracking-wider" style={{ color: C.muted, ...MO }}>LV</span>
         </div>
       </div>
@@ -209,14 +304,14 @@ function HomeScreen({ user, stats, onGenerate, onChallenge, onBoss, levelChallen
       </section>
 
       <section className="px-5 pt-5">
-        <button onClick={onGenerate} className="flex w-full items-center justify-between rounded-2xl px-5 py-4 transition-transform active:scale-[0.98]"
+        <WodButtonMotion onClick={onGenerate} className="flex w-full items-center justify-between rounded-2xl px-5 py-4"
           style={{ backgroundColor: C.xp, color: '#04140A', boxShadow: `0 0 20px ${C.xp}55` }}>
           <div>
             <p className="text-xs font-medium uppercase tracking-wider opacity-70">Ready to train?</p>
             <p className="text-lg font-bold" style={SG}>Generate Workout</p>
           </div>
           <ChevronRight size={22} strokeWidth={2.5} />
-        </button>
+        </WodButtonMotion>
       </section>
 
       <section className="px-5 pt-4">
@@ -433,11 +528,11 @@ function LevelChallengeScreen({ challenge, exercises, userId, onBack, onComplete
       </div>
 
       <div className="flex flex-col gap-2">
-        <button onClick={handlePass} disabled={submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98] disabled:opacity-60"
+        <WodButtonMotion onClick={handlePass} disabled={submitting}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold disabled:opacity-60"
           style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
           {submitting ? 'Saving…' : 'Pass'}
-        </button>
+        </WodButtonMotion>
         <button onClick={onFail} disabled={submitting} className="w-full rounded-2xl border py-3 text-sm font-bold disabled:opacity-60" style={{ borderColor: C.border, color: C.muted, ...SG }}>
           Fail — Try Again Later
         </button>
@@ -540,11 +635,11 @@ function BossBattleScreen({ boss, exercises, userId, onBack, onComplete }: {
             </p>
           </div>
         </div>
-        <button onClick={() => { setPhase('active'); setRunning(true); }}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98]"
+        <WodButtonMotion onClick={() => { setPhase('active'); setRunning(true); }}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
           style={{ backgroundColor: C.boss, color: '#1A0E0C', ...SG }}>
           <Swords size={20} /> Start Boss
-        </button>
+        </WodButtonMotion>
         {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
       </div>
     );
@@ -635,7 +730,7 @@ function ChallengeResultScreen({ xpEarned, onHome }: { xpEarned: number; onHome:
       <p className="mt-2" style={{ color: C.muted }}>Level unlocked.</p>
       <div className="mt-8 w-full rounded-2xl border p-5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
         <p className="text-sm" style={{ color: C.muted }}>XP earned</p>
-        <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+{xpEarned}</p>
+        <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+<NumberRoll value={xpEarned} duration={0.8} /></p>
       </div>
       <button onClick={onHome} className="mt-8 w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
         Back to Home
@@ -662,7 +757,7 @@ function BossResultScreen({ result, bossName, onHome }: {
         <div className="mt-8 w-full rounded-2xl border p-5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
           {medalEmoji && <p className="text-4xl">{medalEmoji}</p>}
           <p className="mt-2 text-sm" style={{ color: C.muted }}>XP earned</p>
-          <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+{result.xpReward}</p>
+          <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+<NumberRoll value={result.xpReward} duration={0.8} /></p>
           <p className="mt-2 text-sm font-bold" style={{ color: C.xp, ...SG }}>LEVEL UNLOCKED</p>
         </div>
       ) : (
@@ -854,11 +949,11 @@ function WodDetailScreen({ wod, exercises, userId, onBack, onComplete }: {
             <p className="mt-1 text-xs leading-relaxed" style={{ color: C.text }}>Train smart. Scale movements or weight as needed — earning any medal is a real achievement.</p>
           </div>
         </div>
-        <button onClick={() => { setPhase('active'); setRunning(true); }}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98]"
+        <WodButtonMotion onClick={() => { setPhase('active'); setRunning(true); }}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
           style={{ backgroundColor: C.conditioning, color: '#1A0E0C', ...SG }}>
           <Award size={20} /> Start {wod.name}
-        </button>
+        </WodButtonMotion>
         {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
       </div>
     );
@@ -1180,7 +1275,7 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
         <button onClick={handleBackPress} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}><ArrowLeft size={16} style={{ color: C.text }} /></button>
         <div>
           <p className="text-xs uppercase tracking-wider" style={{ color: C.muted }}>Workout</p>
-          <h1 className="text-2xl font-bold" style={SG}>{done.size} / {exercises.length}</h1>
+          <h1 className="text-2xl font-bold" style={SG}><NumberRoll value={done.size} duration={0.3} /> / {exercises.length}</h1>
         </div>
       </div>
 
@@ -1222,11 +1317,13 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 border-t px-5 py-4" style={{ backgroundColor: C.bg, borderColor: C.border }}>
-        <button onClick={handleFinish} disabled={!allDone || saving}
+        <WodButtonMotion onClick={handleFinish} disabled={!allDone || saving}
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold disabled:opacity-50"
           style={{ backgroundColor: allDone ? C.xp : C.raised, color: allDone ? '#04140A' : C.muted, ...SG }}>
-          {saving ? 'Saving…' : allDone ? 'Finish & Save' : `Complete all (${done.size}/${exercises.length})`}
-        </button>
+          {saving ? 'Saving…' : allDone ? 'Finish & Save' : (
+            <>Complete all (<NumberRoll value={done.size} duration={0.3} />/{exercises.length})</>
+          )}
+        </WodButtonMotion>
       </div>
       {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
       {quitConfirmIndex !== null && (
@@ -1247,7 +1344,7 @@ function QuitConfirmModal({ pair, onKeepTraining, onQuit }: {
   pair: { keepTraining: string; quit: string }; onKeepTraining: () => void; onQuit: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-5" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+    <ModalTransition>
       <div className="w-full max-w-sm rounded-3xl border p-6 text-center" style={{ borderColor: C.border, backgroundColor: C.surface }}>
         <img src="/icon-512.png" alt="WODXP" className="mx-auto h-16 w-16 rounded-2xl" />
         <h2 className="mt-4 text-lg font-bold" style={SG}>Leaving already?</h2>
@@ -1255,15 +1352,16 @@ function QuitConfirmModal({ pair, onKeepTraining, onQuit }: {
           You're not far into this one yet — quitting now means no XP for the session.
         </p>
         <div className="mt-6 flex flex-col gap-2">
-          <button onClick={onKeepTraining} className="rounded-2xl py-3.5 text-sm font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+          <WodButtonMotion onClick={onKeepTraining} className="rounded-2xl py-3.5 text-sm font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
             {pair.keepTraining}
-          </button>
+          </WodButtonMotion>
+          {/* Deliberately plain per spec: "The End Workout button must not use attention-seeking animation." */}
           <button onClick={onQuit} className="rounded-2xl border py-3.5 text-sm font-bold" style={{ borderColor: C.border, color: C.muted, ...SG }}>
             {pair.quit}
           </button>
         </div>
       </div>
-    </div>
+    </ModalTransition>
   );
 }
 
@@ -1410,7 +1508,7 @@ function CompleteScreen({ xpEarned, levelUps, streakMessage, newlyUnlocked, unlo
 
       <div className="mt-6 w-full rounded-2xl border p-5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
         <p className="text-sm" style={{ color: C.muted }}>XP earned this session</p>
-        <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+{xpEarned}</p>
+        <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+<NumberRoll value={xpEarned} duration={0.8} /></p>
       </div>
       {xpCapped && (
         <p className="mt-3 text-xs leading-relaxed" style={{ color: C.muted }}>
@@ -1640,21 +1738,22 @@ function formatDuration(totalSeconds: number): string {
 }
 
 function AllTimeStatsCard({ stats }: { stats: AllTimeStats }) {
-  const tiles = [
-    { label: 'Time Trained', value: formatDuration(stats.totalSeconds) },
-    { label: 'Workouts', value: stats.totalWorkouts.toLocaleString() },
-    { label: 'kg Lifted', value: Math.round(stats.totalKg).toLocaleString() },
-  ];
   return (
     <div>
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wide" style={SG}>All-Time Stats</h2>
       <div className="grid grid-cols-3 gap-2">
-        {tiles.map((t) => (
-          <div key={t.label} className="rounded-2xl border p-3 text-center" style={{ borderColor: C.border, backgroundColor: C.surface }}>
-            <p className="text-lg font-bold" style={{ color: C.xp, ...MO }}>{t.value}</p>
-            <p className="mt-1 text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>{t.label}</p>
-          </div>
-        ))}
+        <div className="rounded-2xl border p-3 text-center" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <p className="text-lg font-bold" style={{ color: C.xp, ...MO }}>{formatDuration(stats.totalSeconds)}</p>
+          <p className="mt-1 text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>Time Trained</p>
+        </div>
+        <div className="rounded-2xl border p-3 text-center" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <NumberRoll value={stats.totalWorkouts} className="text-lg font-bold" style={{ color: C.xp, ...MO }} />
+          <p className="mt-1 text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>Workouts</p>
+        </div>
+        <div className="rounded-2xl border p-3 text-center" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <NumberRoll value={Math.round(stats.totalKg)} className="text-lg font-bold" style={{ color: C.xp, ...MO }} />
+          <p className="mt-1 text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>kg Lifted</p>
+        </div>
       </div>
     </div>
   );
@@ -1816,6 +1915,16 @@ function ProfileMenu({ username, onLogout, onPrivacy, allTimeStats }: { username
 type Tab = 'home' | 'exercises' | 'wodxp' | 'stats' | 'profile';
 type Screen = 'tab' | 'generator' | 'safety' | 'workout' | 'complete' | 'challenge' | 'boss' | 'challenge-result' | 'boss-result' | 'wod-detail' | 'wod-result';
 
+/** Depth ranking per screen, used by PageTransition to infer forward vs
+ *  back navigation direction without touching every setScreen() call site. */
+const SCREEN_DEPTH: Record<string, number> = {
+  tab: 0,
+  generator: 1, challenge: 1, boss: 1, 'wod-detail': 1,
+  safety: 2, 'challenge-result': 2, 'boss-result': 2, 'wod-result': 2,
+  workout: 3,
+  complete: 4,
+};
+
 export default function AppClient({ user, stats: initialStats, exercises: initialExercises, allTimeStats: initialAllTimeStats, levelChallenges, bossBattles, totalExerciseCount, classicWods, wodSummary: initialWodSummary }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('home');
@@ -1950,7 +2059,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     return (
       <>
         <GlobalStyle />
-        <PageTransition key={screen}>
+        <PageTransition screenKey={screen}>
           <LevelChallengeScreen challenge={progress.challenge} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
             onComplete={async (xp) => { setChallengeXpEarned(xp); await refreshStats(); setScreen('challenge-result'); }}
             onFail={() => setScreen('tab')} />
@@ -1961,7 +2070,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   if (screen === 'challenge-result') return (
     <>
       <GlobalStyle />
-      <PageTransition key={screen}>
+      <PageTransition screenKey={screen}>
         <ChallengeResultScreen xpEarned={challengeXpEarned} onHome={() => { setScreen('tab'); setTab('home'); }} />
       </PageTransition>
     </>
@@ -1972,7 +2081,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     return (
       <>
         <GlobalStyle />
-        <PageTransition key={screen}>
+        <PageTransition screenKey={screen}>
           <BossBattleScreen boss={progress.boss} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
             onComplete={async (result) => { setBossResult(result); await refreshStats(); setScreen('boss-result'); }} />
         </PageTransition>
@@ -1984,7 +2093,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     return (
       <>
         <GlobalStyle />
-        <PageTransition key={screen}>
+        <PageTransition screenKey={screen}>
           <BossResultScreen result={bossResult} bossName={progress.boss?.name ?? bossBattles.find((b) => b.level === stats.level)?.name ?? 'Boss'} onHome={() => { setScreen('tab'); setTab('home'); }} />
         </PageTransition>
       </>
@@ -1993,7 +2102,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   if (screen === 'wod-detail' && selectedWod) return (
     <>
       <GlobalStyle />
-      <PageTransition key={screen}>
+      <PageTransition screenKey={screen}>
         <WodDetailScreen wod={selectedWod} exercises={exercises} userId={user.id} onBack={() => setScreen('tab')}
           onComplete={async (result) => { setWodResult(result); await refreshWodSummary(); setScreen('wod-result'); }} />
       </PageTransition>
@@ -2002,7 +2111,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   if (screen === 'wod-result' && wodResult && selectedWod) return (
     <>
       <GlobalStyle />
-      <PageTransition key={screen}>
+      <PageTransition screenKey={screen}>
         <WodResultScreen result={wodResult} wod={selectedWod} onHome={() => { setScreen('tab'); setTab('wodxp'); }} />
       </PageTransition>
     </>
@@ -2010,7 +2119,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   if (screen === 'generator') return (
     <>
       <GlobalStyle />
-      <PageTransition key={screen}>
+      <PageTransition screenKey={screen}>
         <GeneratorScreen exercises={exercises} totalExerciseCount={totalExerciseCount} onBack={() => setScreen('tab')}
           onStart={(exs, durationMinutes) => {
             setSessionExercises(exs);
@@ -2024,7 +2133,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   if (screen === 'safety') return (
     <>
       <GlobalStyle />
-      <PageTransition key={screen}>
+      <PageTransition screenKey={screen}>
         <SafetyNoticeScreen onBack={() => setScreen('generator')} onContinue={() => setScreen('workout')} />
       </PageTransition>
     </>
@@ -2032,7 +2141,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   if (screen === 'workout') return (
     <>
       <GlobalStyle />
-      <PageTransition key={screen}>
+      <PageTransition screenKey={screen}>
         <WorkoutScreen exercises={sessionExercises} userId={user.id} durationMinutes={sessionDurationMinutes}
           onBack={() => setScreen('tab')} onFinish={handleFinish} />
       </PageTransition>
@@ -2041,7 +2150,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   if (screen === 'complete') return (
     <>
       <GlobalStyle />
-      <PageTransition key={screen}>
+      <PageTransition screenKey={screen}>
         <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} newlyUnlocked={sessionNewlyUnlocked} unlockedChallenge={sessionUnlockedChallenge} xpCapped={xpCapped} onHome={() => { setScreen('tab'); setTab('home'); }} />
       </PageTransition>
     </>
@@ -2064,7 +2173,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   return (
     <div style={{ backgroundColor: C.bg }}>
       <GlobalStyle />
-      <PageTransition key={tab}>
+      <PageTransition screenKey={tab}>
         {content}
       </PageTransition>
       <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around border-t px-2 py-3" style={{ backgroundColor: C.surface, borderColor: C.border }}>
