@@ -123,15 +123,9 @@ function PageTransition({ children, screenKey }: { children: React.ReactNode; sc
   return (
     <motion.div
       key={screenKey}
-      // TEMP DEBUG: exaggerated 1.5s / 120px slide so it's unmissable if
-      // Motion is animating at all. Revert to the spec values below once
-      // confirmed (duration: 0.22, x: 16 * direction, no background flash):
-      //   initial={{ opacity: 0, x: 16 * direction }}
-      //   animate={{ opacity: 1, x: 0 }}
-      //   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      initial={{ opacity: 0, x: 120 * direction, backgroundColor: '#FF6A00' }}
-      animate={{ opacity: 1, x: 0, backgroundColor: '#0D0D0D' }}
-      transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, x: 16 * direction }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>
@@ -745,37 +739,104 @@ function ChallengeResultScreen({ xpEarned, onHome }: { xpEarned: number; onHome:
   );
 }
 
+/**
+ * Wraps content that should reveal `delayMs` after the parent screen
+ * mounts — the building block behind every staged reward sequence
+ * (Boss Defeated, Level Up, etc.), per spec section 21's shared
+ * "RewardReveal" architecture. Each stage fades + rises into place.
+ */
+function RevealStage({ children, delayMs, className }: { children: React.ReactNode; delayMs: number; className?: string }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: delayMs / 1000, duration: 0.4, ease: 'easeOut' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function BossResultScreen({ result, bossName, onHome }: {
   result: { passed: boolean; medal: string | null; xpReward: number }; bossName: string; onHome: () => void;
 }) {
   const medalEmoji = result.medal === 'gold' ? '🥇' : result.medal === 'silver' ? '🥈' : result.medal === 'bronze' ? '🥉' : null;
 
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-5 text-center" style={{ backgroundColor: C.bg }}>
-      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full"
-        style={{ backgroundColor: result.passed ? `${C.xp}1F` : `${C.border}66`, border: `2px solid ${result.passed ? C.xp : C.border}` }}>
-        {result.passed ? <Trophy size={44} style={{ color: C.xp }} /> : <Swords size={44} style={{ color: C.muted }} />}
-      </div>
-      <h1 className="text-3xl font-bold" style={SG}>{result.passed ? 'Boss Defeated!' : 'Boss Survived'}</h1>
-      <p className="mt-2" style={{ color: C.muted }}>{bossName}</p>
-
-      {result.passed ? (
-        <div className="mt-8 w-full rounded-2xl border p-5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
-          {medalEmoji && <p className="text-4xl">{medalEmoji}</p>}
-          <p className="mt-2 text-sm" style={{ color: C.muted }}>XP earned</p>
-          <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+<NumberRoll value={result.xpReward} duration={0.8} /></p>
-          <p className="mt-2 text-sm font-bold" style={{ color: C.xp, ...SG }}>LEVEL UNLOCKED</p>
+  if (!result.passed) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-5 text-center" style={{ backgroundColor: C.bg }}>
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full" style={{ backgroundColor: `${C.border}66`, border: `2px solid ${C.border}` }}>
+          <Swords size={44} style={{ color: C.muted }} />
         </div>
-      ) : (
+        <h1 className="text-3xl font-bold" style={SG}>Boss Survived</h1>
+        <p className="mt-2" style={{ color: C.muted }}>{bossName}</p>
         <p className="mt-8 max-w-sm text-sm leading-relaxed" style={{ color: C.text }}>
           No XP lost, no progress removed. You'll get it next time — try again whenever you're ready.
         </p>
+        <button onClick={onHome} className="mt-8 w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+          Back to Home
+        </button>
+      </div>
+    );
+  }
+
+  // Boss Defeated — WODXP's flagship reward moment, staged per spec
+  // section 23: icon -> "BOSS" -> "DEFEATED" scale-pop -> medal rotateY
+  // reveal -> XP count-up -> CTA. ~1.5s total, darker backdrop throughout.
+  return (
+    <motion.div
+      className="flex min-h-screen flex-col items-center justify-center px-5 text-center"
+      initial={{ backgroundColor: '#0D0D0D' }}
+      animate={{ backgroundColor: '#050505' }}
+      transition={{ duration: 0.3 }}
+    >
+      <RevealStage delayMs={0}>
+        <div className="flex h-24 w-24 items-center justify-center rounded-full" style={{ backgroundColor: `${C.boss}1F`, border: `2px solid ${C.boss}`, boxShadow: `0 0 24px ${C.boss}66` }}>
+          <Swords size={44} style={{ color: C.boss }} />
+        </div>
+      </RevealStage>
+
+      <RevealStage delayMs={150}>
+        <p className="mt-6 text-sm font-bold uppercase tracking-[0.3em]" style={{ color: C.boss }}>{bossName}</p>
+      </RevealStage>
+
+      <motion.h1
+        className="mt-1 text-4xl font-bold"
+        style={{ ...SG, color: C.text }}
+        initial={{ scale: 0.75, opacity: 0 }}
+        animate={{ scale: [0.75, 1.06, 1], opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.5, ease: 'easeOut' }}
+      >
+        DEFEATED
+      </motion.h1>
+
+      {medalEmoji && (
+        <motion.div
+          className="mt-6 text-6xl"
+          initial={{ rotateY: -90, scale: 0.6, opacity: 0 }}
+          animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+          transition={{ delay: 0.55, duration: 0.5, ease: 'easeOut' }}
+          style={{ perspective: 400 }}
+        >
+          {medalEmoji}
+        </motion.div>
       )}
 
-      <button onClick={onHome} className="mt-8 w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
-        Back to Home
-      </button>
-    </div>
+      <RevealStage delayMs={800}>
+        <div className="mt-6 w-full rounded-2xl border p-5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+          <p className="text-sm" style={{ color: C.muted }}>XP earned</p>
+          <p className="mt-1 text-4xl font-bold" style={{ color: C.xp, ...MO }}>+<NumberRoll value={result.xpReward} duration={0.8} /></p>
+          <p className="mt-2 text-sm font-bold" style={{ color: C.xp, ...SG }}>LEVEL UNLOCKED</p>
+        </div>
+      </RevealStage>
+
+      <RevealStage delayMs={1100} className="mt-8 w-full">
+        <WodButtonMotion onClick={onHome} className="w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+          Continue
+        </WodButtonMotion>
+      </RevealStage>
+    </motion.div>
   );
 }
 
@@ -833,19 +894,27 @@ function WodXpScreen({ stats, classicWods, summary, onOpenWod }: {
         {classicWods.map((wod) => {
           const isUnlocked = stats.level >= wod.unlock_level;
           return (
-            <button
+            <motion.button
               key={wod.slot}
               onClick={() => isUnlocked && wod.is_ready && onOpenWod(wod)}
               disabled={!isUnlocked || !wod.is_ready}
-              className="relative flex items-center gap-3 overflow-hidden rounded-2xl border p-4 text-left transition-transform active:scale-[0.98]"
+              className="relative flex items-center gap-3 overflow-hidden rounded-2xl border p-4 text-left"
               style={{
                 borderColor: isUnlocked ? `${C.conditioning}55` : C.border,
                 backgroundColor: isUnlocked ? `${C.conditioning}0F` : C.surface,
               }}
+              animate={{ y: isUnlocked ? 0 : 0, scale: 1 }}
+              whileTap={isUnlocked && wod.is_ready ? { scale: 0.98 } : undefined}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: isUnlocked ? `${C.conditioning}22` : C.raised }}>
-                {isUnlocked ? <Award size={22} color={C.conditioning} style={{ filter: `drop-shadow(0 0 5px ${C.conditioning})` }} /> : <Lock size={20} style={{ color: C.muted }} />}
-              </div>
+              <motion.div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: isUnlocked ? `${C.conditioning}22` : C.raised }}
+                animate={{ rotate: isUnlocked ? 0 : 0 }}>
+                {isUnlocked
+                  ? <motion.span key="unlocked" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+                      <Award size={22} color={C.conditioning} style={{ filter: `drop-shadow(0 0 5px ${C.conditioning})` }} />
+                    </motion.span>
+                  : <Lock size={20} style={{ color: C.muted }} />}
+              </motion.div>
               <div className="flex-1">
                 <p className="font-bold" style={{ color: isUnlocked ? C.text : C.muted, ...SG }}>
                   {isUnlocked ? wod.name : `Unlocks at Lv ${wod.unlock_level}`}
@@ -856,11 +925,16 @@ function WodXpScreen({ stats, classicWods, summary, onOpenWod }: {
               </div>
               {isUnlocked && wod.is_ready && <ChevronRight size={18} style={{ color: C.muted }} />}
 
-              {/* Dim overlay for locked slots — a dark film over the whole card */}
-              {!isUnlocked && (
-                <div className="pointer-events-none absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.55)' }} />
-              )}
-            </button>
+              {/* Dim overlay for locked slots — retracts/fades on unlock
+                  instead of just disappearing, per spec section 26. */}
+              <motion.div
+                className="pointer-events-none absolute inset-0"
+                initial={false}
+                animate={{ opacity: isUnlocked ? 0 : 1 }}
+                transition={{ duration: 0.5 }}
+                style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
+              />
+            </motion.button>
           );
         })}
       </div>
@@ -1023,10 +1097,15 @@ function WodResultScreen({ result, wod, onHome }: {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-5 text-center" style={{ backgroundColor: C.bg }}>
-      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full"
-        style={{ backgroundColor: result.medal ? `${C.conditioning}1F` : `${C.border}66`, border: `2px solid ${result.medal ? C.conditioning : C.border}` }}>
+      <motion.div
+        className="mb-6 flex h-24 w-24 items-center justify-center rounded-full"
+        style={{ backgroundColor: result.medal ? `${C.conditioning}1F` : `${C.border}66`, border: `2px solid ${result.medal ? C.conditioning : C.border}`, perspective: 400 }}
+        initial={{ rotateY: medalEmoji ? -90 : 0, scale: medalEmoji ? 0.6 : 1, opacity: 0 }}
+        animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      >
         {medalEmoji ? <span className="text-5xl">{medalEmoji}</span> : <Award size={44} style={{ color: C.muted }} />}
-      </div>
+      </motion.div>
       <h1 className="text-3xl font-bold" style={SG}>{result.medal ? `${wod.name} Complete!` : `${wod.name} Logged`}</h1>
       <p className="mt-2" style={{ color: C.muted }}>Your score: <span style={MO}>{scoreDisplay}</span></p>
 
@@ -1049,6 +1128,7 @@ function GeneratorScreen({ exercises, totalExerciseCount, onBack, onStart }: { e
   );
   const [goal, setGoal] = useState<'strength' | 'conditioning' | 'mobility' | 'mixed'>('mixed');
   const [duration, setDuration] = useState<10 | 20 | 30 | 45>(20);
+  const [building, setBuilding] = useState(false);
 
   const toggleEquipment = (eq: 'kettlebell' | 'dumbbell' | 'bodyweight') => {
     setEquipment((prev) => {
@@ -1063,14 +1143,15 @@ function GeneratorScreen({ exercises, totalExerciseCount, onBack, onStart }: { e
   };
 
   const handleGenerate = () => {
-    // An exercise qualifies if it supports ANY of the selected equipment
-    // types — picking Bodyweight + Dumbbell excludes kettlebell-only moves.
+    // Brief "BUILDING YOUR WOD..." beat per spec section 13 — the pool is
+    // computed immediately, but onStart is deferred ~750ms so the pulse
+    // sequence has time to play instead of instantly jumping to Safety.
+    setBuilding(true);
     const equipmentPool = exercises.filter((ex) => ex.equipment.some((e) => equipment.has(e as 'kettlebell' | 'dumbbell' | 'bodyweight')));
-    // Goal narrows the pool to exercises that primarily train the chosen
-    // attribute. "Mixed" leaves the pool as-is for full variety.
     const pool = goal === 'mixed' ? equipmentPool : equipmentPool.filter((ex) => ex.primary_attribute === goal);
     const count = duration <= 10 ? 3 : duration <= 20 ? 4 : duration <= 30 ? 5 : 6;
-    onStart(pickVariedExercises(pool.length > 0 ? pool : equipmentPool, count), duration);
+    const picked = pickVariedExercises(pool.length > 0 ? pool : equipmentPool, count);
+    setTimeout(() => onStart(picked, duration), 750);
   };
 
   const Opt = <T extends string | number>({ label, val, cur, set }: { label: string; val: T; cur: T; set: (v: T) => void }) => (
@@ -1130,11 +1211,33 @@ function GeneratorScreen({ exercises, totalExerciseCount, onBack, onStart }: { e
         </div>
       </div>
       <div className="fixed bottom-0 left-0 right-0 border-t px-5 py-4" style={{ backgroundColor: C.bg, borderColor: C.border }}>
-        <button onClick={handleGenerate} className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
+        <WodButtonMotion onClick={handleGenerate} disabled={building} className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
           style={{ backgroundColor: C.xp, color: '#04140A', ...SG, boxShadow: `0 0 20px ${C.xp}55` }}>
           <Sparkles size={20} /> Generate
-        </button>
+        </WodButtonMotion>
       </div>
+      {building && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ backgroundColor: 'rgba(13,13,13,0.92)' }}>
+          <motion.p className="text-sm font-bold uppercase tracking-[0.3em]" style={{ color: C.text, ...SG }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            Building your WOD...
+          </motion.p>
+          <div className="mt-6 flex gap-3">
+            {[{ label: 'Strength', color: C.strength }, { label: 'Mobility', color: C.mobility }, { label: 'Conditioning', color: C.conditioning }].map((a, i) => (
+              <motion.span
+                key={a.label}
+                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
+                style={{ backgroundColor: `${a.color}22`, color: a.color }}
+                initial={{ opacity: 0.3, scale: 0.9 }}
+                animate={{ opacity: [0.3, 1, 0.3], scale: [0.9, 1.06, 0.9] }}
+                transition={{ duration: 0.75, delay: i * 0.2, repeat: Infinity, repeatDelay: 0.15 }}
+              >
+                {a.label}
+              </motion.span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1180,13 +1283,13 @@ function SafetyNoticeScreen({ onBack, onContinue }: { onBack: () => void; onCont
         Don&apos;t show this again
       </label>
 
-      <button
+      <WodButtonMotion
         onClick={handleContinue}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-transform active:scale-[0.98]"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
         style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}
       >
         Got it — Let&apos;s train
-      </button>
+      </WodButtonMotion>
     </div>
   );
 }
@@ -1297,12 +1400,16 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
       </div>
 
       <div className="flex flex-col gap-4">
-        {exercises.map((ex) => {
+        {exercises.map((ex, exIndex) => {
           const log = logs[ex.id];
           const isDone = done.has(ex.id);
           const equipment = pickPrimaryEquipment(ex.equipment);
           return (
-            <div key={ex.id} className="rounded-2xl border p-4" style={{ backgroundColor: C.surface, borderColor: isDone ? `${C.xp}66` : C.border }}>
+            <motion.div key={ex.id} className="rounded-2xl border p-4" style={{ backgroundColor: C.surface, borderColor: isDone ? `${C.xp}66` : C.border }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0, scale: isDone ? [1, 1.015, 1] : 1 }}
+              transition={{ delay: exIndex * 0.06, duration: 0.3, ease: 'easeOut' }}
+            >
               <div className="flex items-center gap-3 mb-4">
                 <button onClick={() => setViewing(ex)} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-transform active:scale-95" style={{ backgroundColor: C.raised }}>
                   <ExerciseIcon exercise={ex} size={40} />
@@ -1323,12 +1430,12 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
                 <Stepper label="Reps" value={log.reps} onChange={(v) => setLogs((p) => ({ ...p, [ex.id]: { ...p[ex.id], reps: v } }))} step={1} unit="reps" min={1} />
                 <Stepper label="Sets" value={log.sets} onChange={(v) => setLogs((p) => ({ ...p, [ex.id]: { ...p[ex.id], sets: v } }))} step={1} unit="sets" min={1} />
               </div>
-              <button onClick={() => setDone((p) => new Set(p).add(ex.id))} disabled={isDone}
+              <WodButtonMotion onClick={() => setDone((p) => new Set(p).add(ex.id))} disabled={isDone}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold"
                 style={{ backgroundColor: isDone ? C.raised : C.xp, color: isDone ? C.xp : '#04140A', ...SG }}>
                 {isDone ? (<><Check size={18} strokeWidth={3} /> Done</>) : 'Mark Complete'}
-              </button>
-            </div>
+              </WodButtonMotion>
+            </motion.div>
           );
         })}
       </div>
@@ -1512,16 +1619,23 @@ function CompleteScreen({ xpEarned, levelUps, streakMessage, newlyUnlocked, unlo
       <p className="mt-2" style={{ color: C.muted }}>Your progress has been recorded.</p>
 
       {levelUpMessage && (
-        <div className="mt-6 w-full rounded-2xl border p-5" style={{ borderColor: C.xp, backgroundColor: `${C.xp}15`, boxShadow: `0 0 20px ${C.xp}33` }}>
+        <motion.div
+          className="mt-6 w-full rounded-2xl border p-5"
+          style={{ borderColor: C.xp, backgroundColor: `${C.xp}15`, boxShadow: `0 0 20px ${C.xp}33` }}
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: [0.85, 1.04, 1], opacity: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
           <p className="text-lg font-bold" style={{ color: C.xp, ...SG }}>{levelUpMessage}</p>
           <div className="mt-2 flex flex-wrap justify-center gap-2">
-            {levelUps.map((lu) => (
-              <span key={lu.attribute} className="rounded-full px-3 py-1 text-xs font-bold" style={{ backgroundColor: `${C.xp}22`, color: C.xp, ...MO }}>
-                {lu.attribute} → Lv {lu.level}
-              </span>
+            {levelUps.map((lu, i) => (
+              <motion.span key={lu.attribute} className="rounded-full px-3 py-1 text-xs font-bold" style={{ backgroundColor: `${C.xp}22`, color: C.xp, ...MO }}
+                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.08 }}>
+                {lu.attribute} → Lv <NumberRoll value={lu.level} duration={0.5} />
+              </motion.span>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {newlyUnlocked > 0 && (
