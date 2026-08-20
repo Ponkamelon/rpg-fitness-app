@@ -123,9 +123,15 @@ function PageTransition({ children, screenKey }: { children: React.ReactNode; sc
   return (
     <motion.div
       key={screenKey}
-      initial={{ opacity: 0, x: 16 * direction }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      // TEMP DEBUG: exaggerated 1.5s / 120px slide so it's unmissable if
+      // Motion is animating at all. Revert to the spec values below once
+      // confirmed (duration: 0.22, x: 16 * direction, no background flash):
+      //   initial={{ opacity: 0, x: 16 * direction }}
+      //   animate={{ opacity: 1, x: 0 }}
+      //   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, x: 120 * direction, backgroundColor: '#FF6A00' }}
+      animate={{ opacity: 1, x: 0, backgroundColor: '#0D0D0D' }}
+      transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>
