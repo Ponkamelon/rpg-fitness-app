@@ -1120,6 +1120,25 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
   const [viewing, setViewing] = useState<Exercise | null>(null);
   const allDone = done.size === exercises.length;
 
+  // Live elapsed-time tracking, used only to detect an early quit (leaving
+  // before 30% of the selected workout duration has passed) — separate
+  // from `startedAt`, which is the fixed timestamp saved to the database.
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [quitConfirmIndex, setQuitConfirmIndex] = useState<number | null>(null);
+  React.useEffect(() => {
+    const id = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const earlyQuitThreshold = durationMinutes * 60 * 0.3;
+  const handleBackPress = () => {
+    if (elapsedSeconds < earlyQuitThreshold) {
+      setQuitConfirmIndex(Math.floor(Math.random() * QUIT_CONFIRM_PAIRS.length));
+    } else {
+      onBack();
+    }
+  };
+
   const handleFinish = async () => {
     setSaving(true);
     const supabase = createClient();
@@ -1158,7 +1177,7 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
   return (
     <div className="min-h-screen px-5 pb-28 pt-6" style={{ backgroundColor: C.bg }}>
       <div className="mb-4 flex items-center gap-3">
-        <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}><ArrowLeft size={16} style={{ color: C.text }} /></button>
+        <button onClick={handleBackPress} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}><ArrowLeft size={16} style={{ color: C.text }} /></button>
         <div>
           <p className="text-xs uppercase tracking-wider" style={{ color: C.muted }}>Workout</p>
           <h1 className="text-2xl font-bold" style={SG}>{done.size} / {exercises.length}</h1>
@@ -1210,6 +1229,40 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
         </button>
       </div>
       {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
+      {quitConfirmIndex !== null && (
+        <QuitConfirmModal
+          pair={QUIT_CONFIRM_PAIRS[quitConfirmIndex]}
+          onKeepTraining={() => setQuitConfirmIndex(null)}
+          onQuit={onBack}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Shown when the user tries to leave a workout before 30% of the selected
+ *  duration has passed. Quitting from here abandons the session entirely —
+ *  nothing is saved, matching "End Workout, No XP". */
+function QuitConfirmModal({ pair, onKeepTraining, onQuit }: {
+  pair: { keepTraining: string; quit: string }; onKeepTraining: () => void; onQuit: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-5" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+      <div className="w-full max-w-sm rounded-3xl border p-6 text-center" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+        <img src="/icon-512.png" alt="WODXP" className="mx-auto h-16 w-16 rounded-2xl" />
+        <h2 className="mt-4 text-lg font-bold" style={SG}>Leaving already?</h2>
+        <p className="mt-1 text-sm" style={{ color: C.muted }}>
+          You're not far into this one yet — quitting now means no XP for the session.
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <button onClick={onKeepTraining} className="rounded-2xl py-3.5 text-sm font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+            {pair.keepTraining}
+          </button>
+          <button onClick={onQuit} className="rounded-2xl border py-3.5 text-sm font-bold" style={{ borderColor: C.border, color: C.muted, ...SG }}>
+            {pair.quit}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1252,6 +1305,22 @@ const LEVEL_UP_MESSAGES: string[] = [
   "Level complete. You're stronger than yesterday!",
 ];
 
+// Paired continue/quit button texts for the early-quit confirmation dialog —
+// kept as matched pairs (not independently randomized) so the joke/tone in
+// each row lands correctly (e.g. "The family is watching" <-> "Family, forgive me").
+const QUIT_CONFIRM_PAIRS: { keepTraining: string; quit: string }[] = [
+  { keepTraining: 'No way, José — keep going!', quit: 'Not my day — end workout.' },
+  { keepTraining: 'Back in the box — keep training!', quit: "I need more rest — I'm done." },
+  { keepTraining: "The XP is waiting — continue!", quit: 'No XP today — end workout.' },
+  { keepTraining: 'Not finished yet — keep going!', quit: "I'm calling it — finish now." },
+  { keepTraining: "One more round — let's go!", quit: "Save it for tomorrow — I'm done." },
+  { keepTraining: 'Back to work — continue workout!', quit: 'My battery is empty — end workout.' },
+  { keepTraining: 'You almost escaped — get back in!', quit: "I'm out — no XP for me." },
+  { keepTraining: 'The family is watching — keep going!', quit: 'Family, forgive me — I\'m done!' },
+  { keepTraining: "XP isn't free — earn it!", quit: 'Rest mode activated — finish workout.' },
+  { keepTraining: 'Get back in there — finish strong!', quit: 'Okay body, you win — end workout.' },
+];
+
 function randomFrom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -1278,11 +1347,12 @@ function detectSessionPopups(prev: UserStats, next: UserStats): { levelUps: { at
   return { levelUps, streakMessage };
 }
 
-function CompleteScreen({ xpEarned, levelUps, streakMessage, newlyUnlocked, xpCapped, onHome }: {
+function CompleteScreen({ xpEarned, levelUps, streakMessage, newlyUnlocked, unlockedChallenge, xpCapped, onHome }: {
   xpEarned: number;
   levelUps: { attribute: string; level: number }[];
   streakMessage: string | null;
   newlyUnlocked: number;
+  unlockedChallenge: { name: string; isBoss: boolean } | null;
   xpCapped: boolean;
   onHome: () => void;
 }) {
@@ -1317,6 +1387,16 @@ function CompleteScreen({ xpEarned, levelUps, streakMessage, newlyUnlocked, xpCa
           <p className="mt-1 text-sm" style={{ color: C.text }}>
             {newlyUnlocked} new {newlyUnlocked === 1 ? 'exercise is' : 'exercises are'} now available to train.
           </p>
+        </div>
+      )}
+
+      {unlockedChallenge && (
+        <div className="mt-4 w-full rounded-2xl border p-5" style={{ borderColor: unlockedChallenge.isBoss ? C.boss : C.xp, backgroundColor: `${unlockedChallenge.isBoss ? C.boss : C.xp}15`, boxShadow: `0 0 20px ${unlockedChallenge.isBoss ? C.boss : C.xp}33` }}>
+          <p className="flex items-center justify-center gap-2 text-lg font-bold" style={{ color: unlockedChallenge.isBoss ? C.boss : C.xp, ...SG }}>
+            {unlockedChallenge.isBoss ? <Swords size={20} /> : <Trophy size={20} />}
+            {unlockedChallenge.isBoss ? 'Boss Battle unlocked!' : 'Level Challenge unlocked!'}
+          </p>
+          <p className="mt-1 text-sm" style={{ color: C.text }}>{unlockedChallenge.name} is now available on Home.</p>
         </div>
       )}
 
@@ -1746,6 +1826,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
   const [sessionLevelUps, setSessionLevelUps] = useState<{ attribute: string; level: number }[]>([]);
   const [sessionStreakMessage, setSessionStreakMessage] = useState<string | null>(null);
   const [sessionNewlyUnlocked, setSessionNewlyUnlocked] = useState(0);
+  const [sessionUnlockedChallenge, setSessionUnlockedChallenge] = useState<{ name: string; isBoss: boolean } | null>(null);
   const [xpCapped, setXpCapped] = useState(false);
   const [challengeXpEarned, setChallengeXpEarned] = useState(0);
   const [bossResult, setBossResult] = useState<{ passed: boolean; medal: string | null; xpReward: number } | null>(null);
@@ -1822,6 +1903,24 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
       setSessionLevelUps(popups.levelUps);
       setSessionStreakMessage(popups.streakMessage);
 
+      // Detect a Level Challenge / Boss Battle transitioning from locked to
+      // unlocked as a result of this workout's XP (separate from the
+      // "new exercises unlocked" check below — this is about the Quest Lv
+      // gated content, not the attribute-based exercise library).
+      const previousProgress = getLevelProgress(previousStats, levelChallenges, bossBattles);
+      const newProgress = getLevelProgress(data, levelChallenges, bossBattles);
+      if (!previousProgress.isUnlocked && newProgress.isUnlocked) {
+        if (newProgress.isBossPending && newProgress.boss) {
+          setSessionUnlockedChallenge({ name: newProgress.boss.name, isBoss: true });
+        } else if (newProgress.challenge) {
+          setSessionUnlockedChallenge({ name: newProgress.challenge.name, isBoss: false });
+        } else {
+          setSessionUnlockedChallenge(null);
+        }
+      } else {
+        setSessionUnlockedChallenge(null);
+      }
+
       const newMaxLevel = Math.max(data.level_strength, data.level_mobility, data.level_conditioning);
       const newlyUnlocked = await refreshExercises(newMaxLevel);
       setSessionNewlyUnlocked(newlyUnlocked);
@@ -1829,6 +1928,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
       setSessionLevelUps([]);
       setSessionStreakMessage(null);
       setSessionNewlyUnlocked(0);
+      setSessionUnlockedChallenge(null);
     }
     await refreshAllTimeStats();
     setScreen('complete');
@@ -1942,7 +2042,7 @@ export default function AppClient({ user, stats: initialStats, exercises: initia
     <>
       <GlobalStyle />
       <PageTransition key={screen}>
-        <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} newlyUnlocked={sessionNewlyUnlocked} xpCapped={xpCapped} onHome={() => { setScreen('tab'); setTab('home'); }} />
+        <CompleteScreen xpEarned={lastXP} levelUps={sessionLevelUps} streakMessage={sessionStreakMessage} newlyUnlocked={sessionNewlyUnlocked} unlockedChallenge={sessionUnlockedChallenge} xpCapped={xpCapped} onHome={() => { setScreen('tab'); setTab('home'); }} />
       </PageTransition>
     </>
   );
