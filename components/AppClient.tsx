@@ -1226,13 +1226,12 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
   }, []);
 
   const earlyQuitThreshold = durationMinutes * 60 * 0.3;
-  const handleBackPress = () => {
-    if (elapsedSeconds < earlyQuitThreshold) {
-      setQuitConfirmIndex(Math.floor(Math.random() * QUIT_CONFIRM_PAIRS.length));
-    } else {
-      onBack();
-    }
-  };
+
+  // The back arrow always leaves immediately — nothing is saved, so there's
+  // no XP to gate here. The confirmation instead belongs on the action that
+  // actually CLAIMS a reward: pressing Finish & Save suspiciously fast is
+  // the real "gaming the system" signal, not simply backing out.
+  const handleBackPress = () => onBack();
 
   const handleFinish = async () => {
     setSaving(true);
@@ -1267,6 +1266,18 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
       onFinish(totalXP, grantedXp ?? totalXP);
     }
     setSaving(false);
+  };
+
+  // Pressing Finish & Save with less than 30% of the selected duration
+  // elapsed shows the confirmation instead of saving immediately — this is
+  // the moment someone is actually claiming the XP reward, so it's the
+  // right place to check, not the back button.
+  const handleFinishClick = () => {
+    if (elapsedSeconds < earlyQuitThreshold) {
+      setQuitConfirmIndex(Math.floor(Math.random() * QUIT_CONFIRM_PAIRS.length));
+    } else {
+      handleFinish();
+    }
   };
 
   return (
@@ -1317,7 +1328,7 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 border-t px-5 py-4" style={{ backgroundColor: C.bg, borderColor: C.border }}>
-        <WodButtonMotion onClick={handleFinish} disabled={!allDone || saving}
+        <WodButtonMotion onClick={handleFinishClick} disabled={!allDone || saving}
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold disabled:opacity-50"
           style={{ backgroundColor: allDone ? C.xp : C.raised, color: allDone ? '#04140A' : C.muted, ...SG }}>
           {saving ? 'Saving…' : allDone ? 'Finish & Save' : (
@@ -1340,11 +1351,41 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
 /** Shown when the user tries to leave a workout before 30% of the selected
  *  duration has passed. Quitting from here abandons the session entirely —
  *  nothing is saved, matching "End Workout, No XP". */
+/**
+ * Plain-CSS modal shell (no Motion dependency) for functionally-critical
+ * dialogs like the quit-workout confirmation — this MUST reliably appear
+ * and be dismissible even if the Motion library has a runtime issue, since
+ * its job (stopping an accidental early quit) matters more than how it
+ * looks. Uses a mount-triggered class toggle for a simple fade + scale-in.
+ */
+function SafeModalShell({ children, onBackdropClick }: { children: React.ReactNode; onBackdropClick?: () => void }) {
+  const [visible, setVisible] = useState(false);
+  React.useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-5 transition-colors duration-200"
+      style={{ backgroundColor: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)' }}
+      onClick={onBackdropClick}
+    >
+      <div
+        className="w-full max-w-sm transition-all duration-200 ease-out"
+        style={{ opacity: visible ? 1 : 0, transform: visible ? 'scale(1) translateY(0)' : 'scale(0.94) translateY(12px)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function QuitConfirmModal({ pair, onKeepTraining, onQuit }: {
   pair: { keepTraining: string; quit: string }; onKeepTraining: () => void; onQuit: () => void;
 }) {
   return (
-    <ModalTransition>
+    <SafeModalShell>
       <div className="w-full max-w-sm rounded-3xl border p-6 text-center" style={{ borderColor: C.border, backgroundColor: C.surface }}>
         <img src="/icon-512.png" alt="WODXP" className="mx-auto h-16 w-16 rounded-2xl" />
         <h2 className="mt-4 text-lg font-bold" style={SG}>Leaving already?</h2>
@@ -1352,16 +1393,16 @@ function QuitConfirmModal({ pair, onKeepTraining, onQuit }: {
           You're not far into this one yet — quitting now means no XP for the session.
         </p>
         <div className="mt-6 flex flex-col gap-2">
-          <WodButtonMotion onClick={onKeepTraining} className="rounded-2xl py-3.5 text-sm font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+          <button onClick={onKeepTraining} className="rounded-2xl py-3.5 text-sm font-bold transition-transform active:scale-[0.96]" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
             {pair.keepTraining}
-          </WodButtonMotion>
+          </button>
           {/* Deliberately plain per spec: "The End Workout button must not use attention-seeking animation." */}
           <button onClick={onQuit} className="rounded-2xl border py-3.5 text-sm font-bold" style={{ borderColor: C.border, color: C.muted, ...SG }}>
             {pair.quit}
           </button>
         </div>
       </div>
-    </ModalTransition>
+    </SafeModalShell>
   );
 }
 
