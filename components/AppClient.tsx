@@ -1025,7 +1025,20 @@ function WodDetailScreen({ wod, exercises, userId, onBack, onComplete }: {
   const [elapsed, setElapsed] = useState(startValue);
   const [running, setRunning] = useState(false);
   const [scoreCount, setScoreCount] = useState(0); // rounds or points, manually tracked
+  const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   useWakeLock(running);
+
+  // Backing out mid-WOD needs a courtesy check — unlike the regular workout
+  // flow, there's no XP at stake here (WODs are medal-only), so the message
+  // is about losing this attempt's chance at a medal, not XP.
+  const handleWodBackPress = () => {
+    if (phase === 'active') {
+      setRunning(false);
+      setShowAbortConfirm(true);
+    } else {
+      onBack();
+    }
+  };
 
   React.useEffect(() => {
     if (!running) return;
@@ -1051,7 +1064,7 @@ function WodDetailScreen({ wod, exercises, userId, onBack, onComplete }: {
   if (phase === 'ready') {
     return (
       <div className="flex min-h-screen flex-col px-5 pb-8 pt-6" style={{ backgroundColor: C.bg }}>
-        <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+        <button onClick={handleWodBackPress} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
           <ArrowLeft size={16} style={{ color: C.text }} />
         </button>
         <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -1117,7 +1130,7 @@ function WodDetailScreen({ wod, exercises, userId, onBack, onComplete }: {
   return (
     <div className="flex min-h-screen flex-col px-5 pb-8 pt-6" style={{ backgroundColor: C.bg }}>
       <div className="flex items-center justify-between">
-        <button onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+        <button onClick={handleWodBackPress} className="flex h-9 w-9 items-center justify-center rounded-full border" style={{ borderColor: C.border, backgroundColor: C.surface }}>
           <ArrowLeft size={16} style={{ color: C.text }} />
         </button>
         <p className="text-sm font-bold" style={{ color: C.conditioning, ...SG }}>{wod.name}</p>
@@ -1151,6 +1164,26 @@ function WodDetailScreen({ wod, exercises, userId, onBack, onComplete }: {
         style={{ backgroundColor: C.conditioning, color: '#1A0E0C', ...SG }}>
         <Check size={20} strokeWidth={3} /> Finish & Submit
       </button>
+      {showAbortConfirm && (
+        <SafeModalShell>
+          <div className="w-full max-w-sm rounded-3xl border p-6 text-center" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+            <img src="/icon-512.png" alt="WODXP" className="mx-auto h-16 w-16 rounded-2xl" />
+            <h2 className="mt-4 text-lg font-bold" style={SG}>Give up already?</h2>
+            <p className="mt-1 text-sm" style={{ color: C.muted }}>
+              You're mid-WOD — leaving now means no medal for this attempt. Your best time stays whatever you've already earned.
+            </p>
+            <div className="mt-6 flex flex-col gap-2">
+              <WodButtonMotion onClick={() => { setShowAbortConfirm(false); setRunning(true); }}
+                className="rounded-2xl py-3.5 text-sm font-bold" style={{ backgroundColor: C.conditioning, color: '#1A0E0C', ...SG }}>
+                Keep Going
+              </WodButtonMotion>
+              <button onClick={onBack} className="rounded-2xl border py-3.5 text-sm font-bold" style={{ borderColor: C.border, color: C.muted, ...SG }}>
+                I&apos;m tired, maybe next time
+              </button>
+            </div>
+          </div>
+        </SafeModalShell>
+      )}
     </div>
   );
 }
