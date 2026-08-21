@@ -186,6 +186,94 @@ function WodButtonMotion({ children, onClick, className, style, disabled }: {
 }
 
 /**
+ * TEST — one LED-streak border effect, applied to a single flagship button
+ * first so it can be evaluated before rolling out to every CTA.
+ *
+ * On press: a short (~13% of the perimeter) light streak travels once
+ * around the rounded border. The streak's OWN color continuously cycles
+ * Lime -> Orange -> Blue -> Lime as it moves (not three separate dots) —
+ * done by rotating a repeating gradient underneath a moving dashed stroke,
+ * so the visible dash samples a different point in the color cycle every
+ * frame. A blur filter behind the stroke gives the glow/trail. Runs once
+ * per press (~700ms), then unmounts itself; button scale (1 -> 0.97 -> 1)
+ * is the normal WodButtonMotion tap spring, layered underneath.
+ *
+ * `radius` should match the button's actual Tailwind rounding in px
+ * (rounded-2xl = 16, rounded-xl = 12, etc.) so the streak traces the real
+ * corners rather than cutting across them.
+ */
+function LedBorderButton({ children, onClick, className, style, disabled, radius = 16 }: {
+  children: React.ReactNode; onClick?: () => void; className?: string; style?: React.CSSProperties;
+  disabled?: boolean; radius?: number;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const reactId = React.useId().replace(/[:]/g, '');
+
+  const handleClick = () => {
+    if (disabled) return;
+    setPlaying(true);
+    window.setTimeout(() => setPlaying(false), 750);
+    onClick?.();
+  };
+
+  return (
+    <motion.button
+      onClick={handleClick}
+      disabled={disabled}
+      className={className}
+      style={{ position: 'relative', ...style }}
+      whileTap={disabled ? undefined : { scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 450, damping: 28 }}
+    >
+      {children}
+      {playing && (
+        <svg className="pointer-events-none absolute inset-0" width="100%" height="100%" style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
+          <defs>
+            {/* Each stop cycles through the WODXP colors on its own, phase-
+                offset from the others — this makes the color flow smoothly
+                across the gradient over time, independent of the button's
+                exact geometry (much more robust than rotating/translating
+                the gradient shape to try to track a rect's stroke path). */}
+            <linearGradient id={`led-grad-${reactId}`} gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#A8FF00">
+                <animate attributeName="stop-color" values="#A8FF00;#FF6A00;#007BFF;#A8FF00" dur="0.7s" repeatCount="1" fill="freeze" />
+              </stop>
+              <stop offset="50%" stopColor="#FF6A00">
+                <animate attributeName="stop-color" values="#FF6A00;#007BFF;#A8FF00;#FF6A00" dur="0.7s" repeatCount="1" fill="freeze" />
+              </stop>
+              <stop offset="100%" stopColor="#007BFF">
+                <animate attributeName="stop-color" values="#007BFF;#A8FF00;#FF6A00;#007BFF" dur="0.7s" repeatCount="1" fill="freeze" />
+              </stop>
+            </linearGradient>
+            <filter id={`led-glow-${reactId}`} x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <rect
+            x="0" y="0"
+            width="100%" height="100%"
+            rx={radius} ry={radius}
+            fill="none"
+            stroke={`url(#led-grad-${reactId})`}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            pathLength={100}
+            strokeDasharray="13 87"
+            filter={`url(#led-glow-${reactId})`}
+          >
+            <animate attributeName="stroke-dashoffset" from="0" to="-100" dur="0.7s" repeatCount="1" fill="freeze" />
+          </rect>
+        </svg>
+      )}
+    </motion.button>
+  );
+}
+
+/**
  * Shared modal shell for centered-card modals, per spec section 12: backdrop
  * fades to 65% opacity, card springs in with a slight scale + rise. Used for
  * Quit Workout and future reward modals (Level Up, Boss Unlock, Medal, PR).
@@ -354,14 +442,14 @@ function HomeScreen({ user, stats, onGenerate, onChallenge, onBoss, levelChallen
       </section>
 
       <section className="px-5 pt-5">
-        <WodButtonMotion onClick={onGenerate} className="flex w-full items-center justify-between rounded-2xl px-5 py-4"
-          style={{ backgroundColor: C.xp, color: '#04140A', boxShadow: `0 0 20px ${C.xp}55` }}>
+        <LedBorderButton onClick={onGenerate} className="flex w-full items-center justify-between rounded-2xl px-5 py-4"
+          style={{ backgroundColor: C.xp, color: '#04140A', boxShadow: `0 0 20px ${C.xp}55` }} radius={16}>
           <div>
             <p className="text-xs font-medium uppercase tracking-wider opacity-70">Ready to train?</p>
             <p className="text-lg font-bold" style={SG}>Generate Workout</p>
           </div>
           <ChevronRight size={22} strokeWidth={2.5} />
-        </WodButtonMotion>
+        </LedBorderButton>
       </section>
 
       <section className="px-5 pt-4">
