@@ -209,11 +209,20 @@ function LedBorderButton({ children, onClick, className, style, disabled, radius
   const [playing, setPlaying] = useState(false);
   const reactId = React.useId().replace(/[:]/g, '');
 
+  // The whole point of this effect is to be SEEN before anything else
+  // happens — for CTAs that navigate or change screens on click (Generate
+  // Workout, Finish & Save, etc.), calling onClick immediately would unmount
+  // this button mid-animation, so the streak never gets a chance to render.
+  // Delaying the actual action by the animation's own duration guarantees
+  // it plays out first, on every button this is used on.
+  const ANIMATION_MS = 750;
   const handleClick = () => {
     if (disabled) return;
     setPlaying(true);
-    window.setTimeout(() => setPlaying(false), 750);
-    onClick?.();
+    window.setTimeout(() => {
+      setPlaying(false);
+      onClick?.();
+    }, ANIMATION_MS);
   };
 
   return (
