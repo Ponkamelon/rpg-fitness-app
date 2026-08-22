@@ -167,23 +167,6 @@ function NumberRoll({ value, className, style, duration = 0.6 }: {
  * release" is a nice P1/P2 polish item to revisit once this base motion is
  * confirmed feeling right, rather than risk an unreliable first pass.
  */
-function WodButtonMotion({ children, onClick, className, style, disabled }: {
-  children: React.ReactNode; onClick?: () => void; className?: string; style?: React.CSSProperties;
-  disabled?: boolean;
-}) {
-  return (
-    <motion.button
-      onClick={onClick}
-      disabled={disabled}
-      className={className}
-      style={style}
-      whileTap={disabled ? undefined : { scale: 0.96 }}
-      transition={{ type: 'spring', stiffness: 450, damping: 28 }}
-    >
-      {children}
-    </motion.button>
-  );
-}
 
 /**
  * TEST — one LED-streak border effect, applied to a single flagship button
@@ -196,7 +179,7 @@ function WodButtonMotion({ children, onClick, className, style, disabled }: {
  * so the visible dash samples a different point in the color cycle every
  * frame. A blur filter behind the stroke gives the glow/trail. Runs once
  * per press (~700ms), then unmounts itself; button scale (1 -> 0.97 -> 1)
- * is the normal WodButtonMotion tap spring, layered underneath.
+ * is the standard tap spring, layered underneath.
  *
  * `radius` should match the button's actual Tailwind rounding in px
  * (rounded-2xl = 16, rounded-xl = 12, etc.) so the streak traces the real
@@ -215,7 +198,7 @@ function LedBorderButton({ children, onClick, className, style, disabled, radius
   // this button mid-animation, so the streak never gets a chance to render.
   // Delaying the actual action by the animation's own duration guarantees
   // it plays out first, on every button this is used on.
-  const ANIMATION_MS = 750;
+  const ANIMATION_MS = 560;
   const handleClick = () => {
     if (disabled) return;
     setPlaying(true);
@@ -245,13 +228,13 @@ function LedBorderButton({ children, onClick, className, style, disabled, radius
                 the gradient shape to try to track a rect's stroke path). */}
             <linearGradient id={`led-grad-${reactId}`} gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#A8FF00">
-                <animate attributeName="stop-color" values="#A8FF00;#FF6A00;#007BFF;#A8FF00" dur="0.7s" repeatCount="1" fill="freeze" />
+                <animate attributeName="stop-color" values="#A8FF00;#FF6A00;#007BFF;#A8FF00" dur="0.525s" repeatCount="1" fill="freeze" />
               </stop>
               <stop offset="50%" stopColor="#FF6A00">
-                <animate attributeName="stop-color" values="#FF6A00;#007BFF;#A8FF00;#FF6A00" dur="0.7s" repeatCount="1" fill="freeze" />
+                <animate attributeName="stop-color" values="#FF6A00;#007BFF;#A8FF00;#FF6A00" dur="0.525s" repeatCount="1" fill="freeze" />
               </stop>
               <stop offset="100%" stopColor="#007BFF">
-                <animate attributeName="stop-color" values="#007BFF;#A8FF00;#FF6A00;#007BFF" dur="0.7s" repeatCount="1" fill="freeze" />
+                <animate attributeName="stop-color" values="#007BFF;#A8FF00;#FF6A00;#007BFF" dur="0.525s" repeatCount="1" fill="freeze" />
               </stop>
             </linearGradient>
             <filter id={`led-glow-${reactId}`} x="-60%" y="-60%" width="220%" height="220%">
@@ -268,13 +251,13 @@ function LedBorderButton({ children, onClick, className, style, disabled, radius
             rx={radius} ry={radius}
             fill="none"
             stroke={`url(#led-grad-${reactId})`}
-            strokeWidth={2.5}
+            strokeWidth={2.9}
             strokeLinecap="round"
             pathLength={100}
             strokeDasharray="13 87"
             filter={`url(#led-glow-${reactId})`}
           >
-            <animate attributeName="stroke-dashoffset" from="0" to="-100" dur="0.7s" repeatCount="1" fill="freeze" />
+            <animate attributeName="stroke-dashoffset" from="0" to="-100" dur="0.525s" repeatCount="1" fill="freeze" />
           </rect>
         </svg>
       )}
@@ -676,11 +659,11 @@ function LevelChallengeScreen({ challenge, exercises, userId, onBack, onComplete
       </div>
 
       <div className="flex flex-col gap-2">
-        <WodButtonMotion onClick={handlePass} disabled={submitting}
+        <LedBorderButton onClick={handlePass} disabled={submitting}
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold disabled:opacity-60"
           style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
           {submitting ? 'Saving…' : 'Pass'}
-        </WodButtonMotion>
+        </LedBorderButton>
         <button onClick={onFail} disabled={submitting} className="w-full rounded-2xl border py-3 text-sm font-bold disabled:opacity-60" style={{ borderColor: C.border, color: C.muted, ...SG }}>
           Fail — Try Again Later
         </button>
@@ -784,11 +767,11 @@ function BossBattleScreen({ boss, exercises, userId, onBack, onComplete }: {
             </p>
           </div>
         </div>
-        <WodButtonMotion onClick={() => { setPhase('active'); setRunning(true); }}
+        <LedBorderButton onClick={() => { setPhase('active'); setRunning(true); }}
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
           style={{ backgroundColor: C.boss, color: '#1A0E0C', ...SG }}>
           <Swords size={20} /> Start Boss
-        </WodButtonMotion>
+        </LedBorderButton>
         {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
       </div>
     );
@@ -981,9 +964,9 @@ function BossResultScreen({ result, bossName, onHome }: {
       </RevealStage>
 
       <RevealStage delayMs={1100} className="mt-8 w-full">
-        <WodButtonMotion onClick={onHome} className="w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
+        <LedBorderButton onClick={onHome} className="w-full rounded-2xl py-4 text-lg font-bold" style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}>
           Continue
-        </WodButtonMotion>
+        </LedBorderButton>
       </RevealStage>
     </motion.div>
   );
@@ -1205,11 +1188,11 @@ function WodDetailScreen({ wod, exercises, userId, onBack, onComplete }: {
             <p className="mt-1 text-xs leading-relaxed" style={{ color: C.text }}>Train smart. Scale movements or weight as needed — earning any medal is a real achievement.</p>
           </div>
         </div>
-        <WodButtonMotion onClick={() => { setPhase('active'); setRunning(true); }}
+        <LedBorderButton onClick={() => { setPhase('active'); setRunning(true); }}
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
           style={{ backgroundColor: C.conditioning, color: '#1A0E0C', ...SG }}>
           <Award size={20} /> Start {wod.name}
-        </WodButtonMotion>
+        </LedBorderButton>
         {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
       </div>
     );
@@ -1270,10 +1253,10 @@ function WodDetailScreen({ wod, exercises, userId, onBack, onComplete }: {
               You're mid-WOD — leaving now means no medal for this attempt. Your best time stays whatever you've already earned.
             </p>
             <div className="mt-6 flex flex-col gap-2">
-              <WodButtonMotion onClick={() => { setShowAbortConfirm(false); setRunning(true); }}
+              <LedBorderButton onClick={() => { setShowAbortConfirm(false); setRunning(true); }}
                 className="rounded-2xl py-3.5 text-sm font-bold" style={{ backgroundColor: C.conditioning, color: '#1A0E0C', ...SG }}>
                 Keep Going
-              </WodButtonMotion>
+              </LedBorderButton>
               <button onClick={onBack} className="rounded-2xl border py-3.5 text-sm font-bold" style={{ borderColor: C.border, color: C.muted, ...SG }}>
                 I&apos;m tired, maybe next time
               </button>
@@ -1407,10 +1390,10 @@ function GeneratorScreen({ exercises, totalExerciseCount, onBack, onStart }: { e
         </div>
       </div>
       <div className="fixed bottom-0 left-0 right-0 border-t px-5 py-4" style={{ backgroundColor: C.bg, borderColor: C.border }}>
-        <WodButtonMotion onClick={handleGenerate} disabled={building} className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
+        <LedBorderButton onClick={handleGenerate} disabled={building} className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
           style={{ backgroundColor: C.xp, color: '#04140A', ...SG, boxShadow: `0 0 20px ${C.xp}55` }}>
           <Sparkles size={20} /> Generate
-        </WodButtonMotion>
+        </LedBorderButton>
       </div>
       {building && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ backgroundColor: 'rgba(13,13,13,0.92)' }}>
@@ -1479,13 +1462,13 @@ function SafetyNoticeScreen({ onBack, onContinue }: { onBack: () => void; onCont
         Don&apos;t show this again
       </label>
 
-      <WodButtonMotion
+      <LedBorderButton
         onClick={handleContinue}
         className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold"
         style={{ backgroundColor: C.xp, color: '#04140A', ...SG }}
       >
         Got it — Let&apos;s train
-      </WodButtonMotion>
+      </LedBorderButton>
     </div>
   );
 }
@@ -1626,24 +1609,24 @@ function WorkoutScreen({ exercises, userId, durationMinutes, onBack, onFinish }:
                 <Stepper label="Reps" value={log.reps} onChange={(v) => setLogs((p) => ({ ...p, [ex.id]: { ...p[ex.id], reps: v } }))} step={1} unit="reps" min={1} />
                 <Stepper label="Sets" value={log.sets} onChange={(v) => setLogs((p) => ({ ...p, [ex.id]: { ...p[ex.id], sets: v } }))} step={1} unit="sets" min={1} />
               </div>
-              <WodButtonMotion onClick={() => setDone((p) => new Set(p).add(ex.id))} disabled={isDone}
+              <LedBorderButton onClick={() => setDone((p) => new Set(p).add(ex.id))} disabled={isDone} radius={12}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold"
                 style={{ backgroundColor: isDone ? C.raised : C.xp, color: isDone ? C.xp : '#04140A', ...SG }}>
                 {isDone ? (<><Check size={18} strokeWidth={3} /> Done</>) : 'Mark Complete'}
-              </WodButtonMotion>
+              </LedBorderButton>
             </motion.div>
           );
         })}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 border-t px-5 py-4" style={{ backgroundColor: C.bg, borderColor: C.border }}>
-        <WodButtonMotion onClick={handleFinishClick} disabled={!allDone || saving}
+        <LedBorderButton onClick={handleFinishClick} disabled={!allDone || saving}
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold disabled:opacity-50"
           style={{ backgroundColor: allDone ? C.xp : C.raised, color: allDone ? '#04140A' : C.muted, ...SG }}>
           {saving ? 'Saving…' : allDone ? 'Finish & Save' : (
             <>Complete all (<NumberRoll value={done.size} duration={0.3} />/{exercises.length})</>
           )}
-        </WodButtonMotion>
+        </LedBorderButton>
       </div>
       {viewing && <ExerciseDetailModal exercise={viewing} onClose={() => setViewing(null)} />}
       {quitConfirmIndex !== null && (
