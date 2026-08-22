@@ -41,8 +41,7 @@ export default function LoginPage() {
     >
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <img src="/icon-512.png" alt="WODXP" className="mx-auto mb-4 h-16 w-16 rounded-2xl" />
-          <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: C.xp, fontFamily: "'Oswald', sans-serif" }}>WODXP</p>
+          <img src="/icon-512.png" alt="WODXP" className="mx-auto mb-4 h-28 w-28 rounded-3xl" />
           <h1 className="mt-2 text-3xl font-bold" style={{ fontFamily: "'Oswald', sans-serif" }}>
             Welcome back
           </h1>
