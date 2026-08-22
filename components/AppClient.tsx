@@ -341,14 +341,76 @@ function useWakeLock(active: boolean) {
   }, [active]);
 }
 
-/** Renders the correct category+equipment icon for an exercise, with a neon glow. */
+/**
+ * Real illustrated exercise images (from the WODXP Exercise Image Production
+ * Pack). Only a first batch (22 of 798 planned) exist so far — this table
+ * only lists what's actually been generated and integrated; everything else
+ * still falls back to the programmatic pose illustration. Keyed by
+ * "Exercise Name|equipment" to disambiguate exercises available in more than
+ * one equipment version.
+ */
+const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
+  'Alternating Curl|dumbbell': '/exercise-images/dumbbell/alternating_curl.png',
+  'Forward Lunge|dumbbell': '/exercise-images/dumbbell/forward_lunge__dumbbell.png',
+  'Alternating Swing|kettlebell': '/exercise-images/kettlebell/alternating_swing.png',
+  'Arnold Press|dumbbell': '/exercise-images/dumbbell/arnold_press.png',
+  'Bear Crawl|bodyweight': '/exercise-images/bodyweight/bear_crawl.png',
+  'Bulgarian Split Squat|kettlebell': '/exercise-images/kettlebell/bulgarian_split_squat__kettlebell.png',
+  'Burpee|bodyweight': '/exercise-images/bodyweight/burpee.png',
+  'Dumbbell Chest Press|dumbbell': '/exercise-images/dumbbell/dumbbell_chest_press.png',
+  'Clean|kettlebell': '/exercise-images/kettlebell/clean.png',
+  'Kettlebell Deadlift|kettlebell': '/exercise-images/kettlebell/kettlebell_deadlift.png',
+  'Decline Push-Up|bodyweight': '/exercise-images/bodyweight/decline_push_up.png',
+  'Diamond Push-Up|bodyweight': '/exercise-images/bodyweight/diamond_push_up.png',
+  'Farmer Carry|kettlebell': '/exercise-images/kettlebell/farmer_carry.png',
+  'Hammer Curl|dumbbell': '/exercise-images/dumbbell/hammer_curl.png',
+  'Goblet Squat|kettlebell': '/exercise-images/kettlebell/goblet_squat__kettlebell.png',
+  'Hip Thrust|bodyweight': '/exercise-images/bodyweight/hip_thrust__bodyweight.png',
+  'Incline Dumbbell Press|dumbbell': '/exercise-images/dumbbell/incline_dumbbell_press.png',
+  'Inchworm|bodyweight': '/exercise-images/bodyweight/inchworm.png',
+  'Snatch|kettlebell': '/exercise-images/kettlebell/snatch.png',
+  'Lateral Raise|dumbbell': '/exercise-images/dumbbell/lateral_raise.png',
+  'Mountain Climber|bodyweight': '/exercise-images/bodyweight/mountain_climber.png',
+  'Romanian Deadlift|kettlebell': '/exercise-images/kettlebell/romanian_deadlift__kettlebell.png',
+};
+
+/** The three fixed equipment-type logos — NOT exercise-specific, just one
+ *  of three icons chosen by which equipment the exercise uses. */
+const EQUIPMENT_ICON_IMAGES: Record<'kettlebell' | 'dumbbell' | 'bodyweight', string> = {
+  kettlebell: '/equipment-icons/kettlebell.png',
+  dumbbell: '/equipment-icons/dumbbell.png',
+  bodyweight: '/equipment-icons/bodyweight.png',
+};
+
+/** Renders the real illustrated image for an exercise when one exists in the
+ *  production batch, falling back to the programmatic pose SVG otherwise. */
+function ExerciseVisual({ exercise, size = 90 }: { exercise: Exercise; size?: number }) {
+  const equipment = pickPrimaryEquipment(exercise.equipment);
+  const imageSrc = EXERCISE_ILLUSTRATION_IMAGES[`${exercise.name}|${equipment}`];
+  if (imageSrc) {
+    return (
+      <img
+        src={imageSrc}
+        alt={exercise.name}
+        className="w-full max-w-xs rounded-2xl"
+        style={{ boxShadow: `0 0 24px ${EQUIPMENT_COLORS[equipment]}33` }}
+      />
+    );
+  }
+  return <ExerciseIllustration category={exercise.category} equipment={equipment} name={exercise.name} size={size} />;
+}
+
+/** Renders the exercise's equipment-type icon (kettlebell/dumbbell/
+ *  bodyweight) — NOT a per-exercise illustration, just one of three fixed
+ *  logos, shown next to each exercise in a generated workout. */
 function ExerciseIcon({ exercise, size = 40 }: { exercise: Exercise; size?: number }) {
-  const Icon = CATEGORY_ICONS[exercise.category] ?? CATEGORY_ICONS.core;
   const equipment = pickPrimaryEquipment(exercise.equipment);
   return (
-    <div className="neon-icon" style={{ color: EQUIPMENT_COLORS[equipment] }}>
-      <Icon size={size} equipment={equipment} />
-    </div>
+    <img
+      src={EQUIPMENT_ICON_IMAGES[equipment]}
+      alt={equipment}
+      style={{ width: size, height: size, objectFit: 'contain' }}
+    />
   );
 }
 
@@ -1886,7 +1948,7 @@ function ExerciseDetailModal({ exercise, onClose }: { exercise: Exercise; onClos
 
       <div className="flex flex-1 flex-col items-center px-5 py-4">
         <div className="flex items-center justify-center" style={{ minHeight: 200 }}>
-          <ExerciseIllustration category={exercise.category} equipment={equipment} name={exercise.name} size={90} />
+          <ExerciseVisual exercise={exercise} size={90} />
         </div>
 
         <div className="mt-6 w-full max-w-sm">
