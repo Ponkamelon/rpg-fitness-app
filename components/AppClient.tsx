@@ -343,11 +343,9 @@ function useWakeLock(active: boolean) {
 
 /**
  * Real illustrated exercise images (from the WODXP Exercise Image Production
- * Pack). Only a first batch (22 of 798 planned) exist so far — this table
- * only lists what's actually been generated and integrated; everything else
- * still falls back to the programmatic pose illustration. Keyed by
- * "Exercise Name|equipment" to disambiguate exercises available in more than
- * one equipment version.
+ * Pack). Falls back to the programmatic pose illustration for anything not
+ * yet generated. Keyed by "Exercise Name|equipment" to disambiguate
+ * exercises available in more than one equipment version.
  */
 const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Alternating Curl|dumbbell': '/exercise-images/dumbbell/alternating_curl.png',
@@ -400,6 +398,49 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Kettlebell Swing|kettlebell': '/exercise-images/kettlebell/kettlebell_swing.png',
   'Forearm Plank|bodyweight': '/exercise-images/bodyweight/forearm_plank.png',
   'Windmill|kettlebell': '/exercise-images/kettlebell/windmill.png',
+  // Batch 4 + 5 additions (individually cropped, not grid-sliced):
+  'One-Arm Swing|kettlebell': '/exercise-images/kettlebell/one_arm_swing.png',
+  'Turkish Get-Up|kettlebell': '/exercise-images/kettlebell/turkish_get_up__kettlebell.png',
+  'Two-Hand Swing|kettlebell': '/exercise-images/kettlebell/two_hand_swing.png',
+  'Clean and Press|dumbbell': '/exercise-images/dumbbell/clean_and_press.png',
+  'Concentration Curl|dumbbell': '/exercise-images/dumbbell/concentration_curl.png',
+  'Reverse Fly|dumbbell': '/exercise-images/dumbbell/reverse_fly.png',
+  'Shrugs|dumbbell': '/exercise-images/dumbbell/shrugs.png',
+  'Skull Crusher|dumbbell': '/exercise-images/dumbbell/skull_crusher.png',
+  'Dumbbell Snatch|dumbbell': '/exercise-images/dumbbell/dumbbell_snatch.png',
+  'Thruster|dumbbell': '/exercise-images/dumbbell/thruster__dumbbell.png',
+  'Triceps Kickback|dumbbell': '/exercise-images/dumbbell/triceps_kickback.png',
+  'Bear Plank|bodyweight': '/exercise-images/bodyweight/bear_plank.png',
+  'Bicycle Crunch|bodyweight': '/exercise-images/bodyweight/bicycle_crunch.png',
+  'Butt Kicks|bodyweight': '/exercise-images/bodyweight/butt_kicks.png',
+  'High Knees|bodyweight': '/exercise-images/bodyweight/high_knees.png',
+  'Hollow-Body Hold|bodyweight': '/exercise-images/bodyweight/hollow_body_hold.png',
+  'Leg Raise|bodyweight': '/exercise-images/bodyweight/leg_raise.png',
+  'Plank Up-Down|bodyweight': '/exercise-images/bodyweight/plank_up_down.png',
+  'Push-Up|bodyweight': '/exercise-images/bodyweight/push_up.png',
+  'Squat Jump|bodyweight': '/exercise-images/bodyweight/squat_jump.png',
+  // Batch 6 additions — the top-20 highest-visibility gap-fillers
+  // (appear in Classic WODs / Level Challenges / Boss Battles):
+  'Clean & Jerk|kettlebell': '/exercise-images/kettlebell/clean_and_jerk.png',
+  'Push Press|kettlebell': '/exercise-images/kettlebell/push_press.png',
+  'Sumo Deadlift High Pull|kettlebell': '/exercise-images/kettlebell/sumo_deadlift_high_pull.png',
+  'Standing Shoulder Press|dumbbell': '/exercise-images/dumbbell/standing_shoulder_press.png',
+  'Wall Ball|dumbbell': '/exercise-images/dumbbell/wall_ball.png',
+  'Box Jump|bodyweight': '/exercise-images/bodyweight/box_jump.png',
+  'Double Under|bodyweight': '/exercise-images/bodyweight/double_under.png',
+  'Jumping Lunges|bodyweight': '/exercise-images/bodyweight/jumping_lunges.png',
+  'Jumping Pull-Up|bodyweight': '/exercise-images/bodyweight/jumping_pull_up.png',
+  'Knees-to-Elbows|bodyweight': '/exercise-images/bodyweight/knees_to_elbows.png',
+  'Muscle-Up|bodyweight': '/exercise-images/bodyweight/muscle_up.png',
+  'Pull-Up|bodyweight': '/exercise-images/bodyweight/pull_up.png',
+  'Row (Machine)|bodyweight': '/exercise-images/bodyweight/row_machine.png',
+  'Run|bodyweight': '/exercise-images/bodyweight/run.png',
+  'Sit-Up|bodyweight': '/exercise-images/bodyweight/sit_up.png',
+  'Step Jacks|bodyweight': '/exercise-images/bodyweight/step_jacks.png',
+  'Superman Hold|bodyweight': '/exercise-images/bodyweight/superman_hold.png',
+  'Tuck Jump|bodyweight': '/exercise-images/bodyweight/tuck_jump.png',
+  'Walking Lunge|bodyweight': '/exercise-images/bodyweight/walking_lunge.png',
+  'Wall Handstand Push-Up|bodyweight': '/exercise-images/bodyweight/wall_handstand_push_up.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
