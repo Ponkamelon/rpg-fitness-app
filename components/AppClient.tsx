@@ -441,6 +441,28 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Tuck Jump|bodyweight': '/exercise-images/bodyweight/tuck_jump.png',
   'Walking Lunge|bodyweight': '/exercise-images/bodyweight/walking_lunge.png',
   'Wall Handstand Push-Up|bodyweight': '/exercise-images/bodyweight/wall_handstand_push_up.png',
+  // Batch 7 additions (all 10 verified content-matched against filename
+  // after the first batch 7 attempt had ~20/24 mismatched images):
+  'Two-Hand Row|kettlebell': '/exercise-images/kettlebell/two_hand_row.png',
+  'Goblet Box Squat|kettlebell': '/exercise-images/kettlebell/goblet_box_squat.png',
+  'Two-Hand Floor Press|kettlebell': '/exercise-images/kettlebell/two_hand_floor_press.png',
+  'Knee Push-Up|bodyweight': '/exercise-images/bodyweight/knee_push_up.png',
+  'Incline Push-Up|bodyweight': '/exercise-images/bodyweight/incline_push_up.png',
+  'Dumbbell Floor Press|dumbbell': '/exercise-images/dumbbell/dumbbell_floor_press.png',
+  'Floor Press|dumbbell': '/exercise-images/dumbbell/floor_press.png',
+  'Dumbbell Bent-Over Row|dumbbell': '/exercise-images/dumbbell/dumbbell_bent_over_row.png',
+  'Dumbbell Seated Curl|dumbbell': '/exercise-images/dumbbell/dumbbell_seated_curl.png',
+  // Batch 8 additions (all 10 verified content-matched):
+  'Calf Raise|kettlebell': '/exercise-images/kettlebell/calf_raise__kettlebell.png',
+  'Farmers Carry|kettlebell': '/exercise-images/kettlebell/farmers_carry.png',
+  'Dead Bug|bodyweight': '/exercise-images/bodyweight/dead_bug.png',
+  'Bird Dog|bodyweight': '/exercise-images/bodyweight/bird_dog.png',
+  'Wall Squat|bodyweight': '/exercise-images/bodyweight/wall_squat.png',
+  'Calf Raise|bodyweight': '/exercise-images/bodyweight/calf_raise__bodyweight.png',
+  'Dumbbell Deadlift|dumbbell': '/exercise-images/dumbbell/dumbbell_deadlift.png',
+  'Dumbbell Farmer Hold|dumbbell': '/exercise-images/dumbbell/dumbbell_farmer_hold.png',
+  'Goblet Squat|dumbbell': '/exercise-images/dumbbell/goblet_squat__dumbbell.png',
+  'Calf Raise|dumbbell': '/exercise-images/dumbbell/calf_raise__dumbbell.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
