@@ -463,6 +463,17 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Dumbbell Farmer Hold|dumbbell': '/exercise-images/dumbbell/dumbbell_farmer_hold.png',
   'Goblet Squat|dumbbell': '/exercise-images/dumbbell/goblet_squat__dumbbell.png',
   'Calf Raise|dumbbell': '/exercise-images/dumbbell/calf_raise__dumbbell.png',
+  // Batch 9 additions (9 of 10 verified new; "Dead Bug" skipped as an
+  // already-covered duplicate from Batch 8):
+  'KB Goblet Hold|kettlebell': '/exercise-images/kettlebell/kb_goblet_hold.png',
+  'Glute Bridge|kettlebell': '/exercise-images/kettlebell/glute_bridge__kettlebell.png',
+  'KB Seated Hold|kettlebell': '/exercise-images/kettlebell/kb_seated_hold.png',
+  'Dumbbell Glute Bridge|dumbbell': '/exercise-images/dumbbell/dumbbell_glute_bridge.png',
+  'Ankle Rock|bodyweight': '/exercise-images/bodyweight/ankle_rock.png',
+  'Arm Circles|bodyweight': '/exercise-images/bodyweight/arm_circles.png',
+  'Cat-Cow Stretch|bodyweight': '/exercise-images/bodyweight/cat_cow_stretch.png',
+  'Superman|bodyweight': '/exercise-images/bodyweight/superman.png',
+  'Cat-Cow|bodyweight': '/exercise-images/bodyweight/cat_cow.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
