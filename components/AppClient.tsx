@@ -474,6 +474,18 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Cat-Cow Stretch|bodyweight': '/exercise-images/bodyweight/cat_cow_stretch.png',
   'Superman|bodyweight': '/exercise-images/bodyweight/superman.png',
   'Cat-Cow|bodyweight': '/exercise-images/bodyweight/cat_cow.png',
+  // Batch 10 additions (all 10 verified content-matched; needed a re-export
+  // after the first attempt had systematic mismatches, same as Batch 7):
+  'Goblet Squat Hold|dumbbell': '/exercise-images/dumbbell/goblet_squat_hold__dumbbell.png',
+  'Goblet Squat Hold|kettlebell': '/exercise-images/kettlebell/goblet_squat_hold__kettlebell.png',
+  'KB Around the Body|kettlebell': '/exercise-images/kettlebell/kb_around_the_body.png',
+  'Seated Hamstring Reach|bodyweight': '/exercise-images/bodyweight/seated_hamstring_reach.png',
+  'Reverse Snow Angel|bodyweight': '/exercise-images/bodyweight/reverse_snow_angel.png',
+  'Hip Hinge Drill|bodyweight': '/exercise-images/bodyweight/hip_hinge_drill.png',
+  'Neck Side Stretch|bodyweight': '/exercise-images/bodyweight/neck_side_stretch.png',
+  'Hip Flexor Stretch|bodyweight': '/exercise-images/bodyweight/hip_flexor_stretch.png',
+  "Child's Pose|bodyweight": '/exercise-images/bodyweight/childs_pose.png',
+  "Child's Pose + Side Reach|bodyweight": '/exercise-images/bodyweight/childs_pose_side_reach.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
