@@ -486,6 +486,15 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Hip Flexor Stretch|bodyweight': '/exercise-images/bodyweight/hip_flexor_stretch.png',
   "Child's Pose|bodyweight": '/exercise-images/bodyweight/childs_pose.png',
   "Child's Pose + Side Reach|bodyweight": '/exercise-images/bodyweight/childs_pose_side_reach.png',
+  // Batch 11 additions (7 new; Superman, Wall Squat, and Step Jacks
+  // skipped as already-covered duplicates from earlier batches):
+  'Standing Quad Stretch|bodyweight': '/exercise-images/bodyweight/standing_quad_stretch.png',
+  'Standing Chest Opener|bodyweight': '/exercise-images/bodyweight/standing_chest_opener.png',
+  'Standing Side Reach|bodyweight': '/exercise-images/bodyweight/standing_side_reach.png',
+  'Shoulder Rolls|bodyweight': '/exercise-images/bodyweight/shoulder_rolls.png',
+  'Standing Mountain Climber|bodyweight': '/exercise-images/bodyweight/standing_mountain_climber.png',
+  "World's Greatest Stretch|bodyweight": '/exercise-images/bodyweight/worlds_greatest_stretch.png',
+  'KB Farmer Hold|kettlebell': '/exercise-images/kettlebell/kb_farmer_hold.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
