@@ -495,6 +495,16 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Standing Mountain Climber|bodyweight': '/exercise-images/bodyweight/standing_mountain_climber.png',
   "World's Greatest Stretch|bodyweight": '/exercise-images/bodyweight/worlds_greatest_stretch.png',
   'KB Farmer Hold|kettlebell': '/exercise-images/kettlebell/kb_farmer_hold.png',
+  // Batch 12 additions (6 of 10 verified correct; Forearm Plank skipped as
+  // an already-covered duplicate; Double KB Clean and Jerk, Double KB Floor
+  // Press, and Bottom-Up Press still show mismatched content pending a
+  // further-corrected re-export):
+  'Chest Fly|dumbbell': '/exercise-images/dumbbell/chest_fly.png',
+  'Close-Grip Floor Press|dumbbell': '/exercise-images/dumbbell/close_grip_floor_press.png',
+  'Archer Push-Up|bodyweight': '/exercise-images/bodyweight/archer_push_up.png',
+  'Dive-Bomber Push-Up|bodyweight': '/exercise-images/bodyweight/dive_bomber_push_up.png',
+  'Double KB Clean and Press|kettlebell': '/exercise-images/kettlebell/double_kb_clean_and_press.png',
+  'Bent Press|kettlebell': '/exercise-images/kettlebell/bent_press.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
