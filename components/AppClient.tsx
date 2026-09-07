@@ -505,6 +505,18 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Dive-Bomber Push-Up|bodyweight': '/exercise-images/bodyweight/dive_bomber_push_up.png',
   'Double KB Clean and Press|kettlebell': '/exercise-images/kettlebell/double_kb_clean_and_press.png',
   'Bent Press|kettlebell': '/exercise-images/kettlebell/bent_press.png',
+  // Batch 13-new15 additions (7 of 15 approved after logo correction; 3
+  // still have issues — Broad Jump content regressed, Pike Push-Up logo
+  // mirrored, Hand-Release Push-Up logo missing — and 5 exercises weren't
+  // resent yet: Flutter Kicks, Man Maker, Curtsy Lunge, Zottman Curl,
+  // Devil Press):
+  'Good Morning|kettlebell': '/exercise-images/kettlebell/good_morning.png',
+  'Single-Arm Row|dumbbell': '/exercise-images/dumbbell/single_arm_row.png',
+  'Russian Twist|dumbbell': '/exercise-images/dumbbell/russian_twist.png',
+  'Face Pull|dumbbell': '/exercise-images/dumbbell/face_pull.png',
+  'Chin-Up|bodyweight': '/exercise-images/bodyweight/chin_up.png',
+  'Dip|bodyweight': '/exercise-images/bodyweight/dip.png',
+  'Inverted Row|bodyweight': '/exercise-images/bodyweight/inverted_row.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
