@@ -542,6 +542,13 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Cossack Squat|kettlebell': '/exercise-images/kettlebell/cossack_squat.png',
   'Kettlebell Front Squat|kettlebell': '/exercise-images/kettlebell/kettlebell_front_squat.png',
   'Kettlebell Woodchop|kettlebell': '/exercise-images/kettlebell/kettlebell_woodchop.png',
+  // Batch 14B additions (final 5 from the batch 14 list, all verified
+  // correct on first delivery):
+  'Single-Leg Romanian Deadlift|dumbbell': '/exercise-images/dumbbell/single_leg_romanian_deadlift.png',
+  'Suitcase Carry|dumbbell': '/exercise-images/dumbbell/suitcase_carry.png',
+  'Box Step-Down|bodyweight': '/exercise-images/bodyweight/box_step_down.png',
+  'Reverse Crunch|bodyweight': '/exercise-images/bodyweight/reverse_crunch.png',
+  'Toe Touches|bodyweight': '/exercise-images/bodyweight/toe_touches.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
