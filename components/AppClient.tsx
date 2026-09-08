@@ -517,6 +517,11 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Chin-Up|bodyweight': '/exercise-images/bodyweight/chin_up.png',
   'Dip|bodyweight': '/exercise-images/bodyweight/dip.png',
   'Inverted Row|bodyweight': '/exercise-images/bodyweight/inverted_row.png',
+  // Batch 13A fixes (2 of 3 now approved — logo issues resolved; Broad
+  // Jump still needs another pass, content doesn't show an actual jump
+  // with distance yet):
+  'Hand-Release Push-Up|bodyweight': '/exercise-images/bodyweight/hand_release_push_up.png',
+  'Pike Push-Up|bodyweight': '/exercise-images/bodyweight/pike_push_up.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
