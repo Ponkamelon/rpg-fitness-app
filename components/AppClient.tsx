@@ -529,6 +529,19 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Man Maker|dumbbell': '/exercise-images/dumbbell/man_maker.png',
   'Devil Press|dumbbell': '/exercise-images/dumbbell/devil_press.png',
   'Zottman Curl|dumbbell': '/exercise-images/dumbbell/zottman_curl.png',
+  // Batch 14 additions (first 10 of 15; 8 fully confirmed, 2 weak but
+  // included — Plank Jack and Spiderman Push-Up show the correct base
+  // position but not the exercise's defining motion detail clearly):
+  'Incline Dumbbell Curl|dumbbell': '/exercise-images/dumbbell/incline_dumbbell_curl.png',
+  'Burpee with Push-Up|bodyweight': '/exercise-images/bodyweight/burpee_with_push_up.png',
+  'Lunge to Knee Drive|bodyweight': '/exercise-images/bodyweight/lunge_to_knee_drive.png',
+  'Pistol Squat|bodyweight': '/exercise-images/bodyweight/pistol_squat.png',
+  'Plank Jack|bodyweight': '/exercise-images/bodyweight/plank_jack.png',
+  'Reverse Plank|bodyweight': '/exercise-images/bodyweight/reverse_plank.png',
+  'Spiderman Push-Up|bodyweight': '/exercise-images/bodyweight/spiderman_push_up.png',
+  'Cossack Squat|kettlebell': '/exercise-images/kettlebell/cossack_squat.png',
+  'Kettlebell Front Squat|kettlebell': '/exercise-images/kettlebell/kettlebell_front_squat.png',
+  'Kettlebell Woodchop|kettlebell': '/exercise-images/kettlebell/kettlebell_woodchop.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
