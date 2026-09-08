@@ -522,6 +522,13 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   // with distance yet):
   'Hand-Release Push-Up|bodyweight': '/exercise-images/bodyweight/hand_release_push_up.png',
   'Pike Push-Up|bodyweight': '/exercise-images/bodyweight/pike_push_up.png',
+  // Batch 13B additions (final 5 from the original batch 13-new15 list,
+  // all verified correct on first delivery):
+  'Flutter Kicks|bodyweight': '/exercise-images/bodyweight/flutter_kicks.png',
+  'Curtsy Lunge|bodyweight': '/exercise-images/bodyweight/curtsy_lunge__bodyweight.png',
+  'Man Maker|dumbbell': '/exercise-images/dumbbell/man_maker.png',
+  'Devil Press|dumbbell': '/exercise-images/dumbbell/devil_press.png',
+  'Zottman Curl|dumbbell': '/exercise-images/dumbbell/zottman_curl.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
