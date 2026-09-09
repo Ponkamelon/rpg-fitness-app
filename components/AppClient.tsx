@@ -549,6 +549,15 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Box Step-Down|bodyweight': '/exercise-images/bodyweight/box_step_down.png',
   'Reverse Crunch|bodyweight': '/exercise-images/bodyweight/reverse_crunch.png',
   'Toe Touches|bodyweight': '/exercise-images/bodyweight/toe_touches.png',
+  // Batch 15 additions (6 of 8 confirmed correct; Skater Hops and Skater
+  // Jump both showed a generic running pose instead of the distinctive
+  // lateral skating bound — held back pending a correction):
+  'Overhead Carry|kettlebell': '/exercise-images/kettlebell/overhead_carry__kettlebell.png',
+  'Overhead Carry|dumbbell': '/exercise-images/dumbbell/overhead_carry__dumbbell.png',
+  '90/90 Hip Switch|bodyweight': '/exercise-images/bodyweight/90_90_hip_switch.png',
+  'Bulgarian Split Squat|bodyweight': '/exercise-images/bodyweight/bulgarian_split_squat__bodyweight.png',
+  'Bulgarian Split Squat|dumbbell': '/exercise-images/dumbbell/bulgarian_split_squat__dumbbell.png',
+  'Sumo Squat|dumbbell': '/exercise-images/dumbbell/sumo_squat.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
