@@ -558,6 +558,19 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Bulgarian Split Squat|bodyweight': '/exercise-images/bodyweight/bulgarian_split_squat__bodyweight.png',
   'Bulgarian Split Squat|dumbbell': '/exercise-images/dumbbell/bulgarian_split_squat__dumbbell.png',
   'Sumo Squat|dumbbell': '/exercise-images/dumbbell/sumo_squat.png',
+  // Batch 16 additions (first 10 of 15, all verified content-matched;
+  // built from a direct database export, not guessed names, so no
+  // mismatches this round):
+  'KB Goblet March|kettlebell': '/exercise-images/kettlebell/kb_goblet_march.png',
+  'Kettlebell Single-Arm Row|kettlebell': '/exercise-images/kettlebell/kettlebell_single_arm_row.png',
+  'One-Arm Row|kettlebell': '/exercise-images/kettlebell/one_arm_row.png',
+  'Tall-Kneeling Press|kettlebell': '/exercise-images/kettlebell/tall_kneeling_press.png',
+  'March in Place|bodyweight': '/exercise-images/bodyweight/march_in_place.png',
+  'Side Steps|bodyweight': '/exercise-images/bodyweight/side_steps.png',
+  'Dumbbell Farmer Carry|dumbbell': '/exercise-images/dumbbell/dumbbell_farmer_carry.png',
+  'Dumbbell Front Hold|dumbbell': '/exercise-images/dumbbell/dumbbell_front_hold.png',
+  'Hip Hinge Drill|dumbbell': '/exercise-images/dumbbell/hip_hinge_drill__dumbbell.png',
+  'Squeeze Press|dumbbell': '/exercise-images/dumbbell/squeeze_press.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
