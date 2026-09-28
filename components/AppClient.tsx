@@ -571,6 +571,19 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Dumbbell Front Hold|dumbbell': '/exercise-images/dumbbell/dumbbell_front_hold.png',
   'Hip Hinge Drill|dumbbell': '/exercise-images/dumbbell/hip_hinge_drill__dumbbell.png',
   'Squeeze Press|dumbbell': '/exercise-images/dumbbell/squeeze_press.png',
+  // Batch 17A additions (10 of 15, all verified content-matched against the
+  // database-driven gap list; direct carry-over from Batch 16 plus the next
+  // items in the sorted waitlist):
+  'Pullover|dumbbell': '/exercise-images/dumbbell/pullover__dumbbell.png',
+  'Static Split Squat|bodyweight': '/exercise-images/bodyweight/static_split_squat__bodyweight.png',
+  'Double Kettlebell Deadlift|kettlebell': '/exercise-images/kettlebell/double_kettlebell_deadlift.png',
+  'Staggered-Stance Deadlift|kettlebell': '/exercise-images/kettlebell/staggered_stance_deadlift.png',
+  'Dumbbell Crunch|dumbbell': '/exercise-images/dumbbell/dumbbell_crunch.png',
+  'Fast March|bodyweight': '/exercise-images/bodyweight/fast_march.png',
+  'Low Step Touch|bodyweight': '/exercise-images/bodyweight/low_step_touch.png',
+  'Standing Knee Drives|bodyweight': '/exercise-images/bodyweight/standing_knee_drives.png',
+  'Floor Press|kettlebell': '/exercise-images/kettlebell/floor_press__kettlebell.png',
+  'Triceps Extension|kettlebell': '/exercise-images/kettlebell/triceps_extension__kettlebell.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
