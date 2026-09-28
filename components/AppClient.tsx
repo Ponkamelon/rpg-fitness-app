@@ -584,6 +584,15 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Standing Knee Drives|bodyweight': '/exercise-images/bodyweight/standing_knee_drives.png',
   'Floor Press|kettlebell': '/exercise-images/kettlebell/floor_press__kettlebell.png',
   'Triceps Extension|kettlebell': '/exercise-images/kettlebell/triceps_extension__kettlebell.png',
+  // Batch 17B additions (final 5 of 15, completing Batch 17; all verified
+  // content-matched — Biceps Curl and Forward Lunge show two kettlebells
+  // rather than one, but neither exercise name specifies "Double"/"Single"
+  // and the equipment type/color coding is correct, so kept):
+  'Biceps Curl|kettlebell': '/exercise-images/kettlebell/biceps_curl__kettlebell.png',
+  'Pullover|kettlebell': '/exercise-images/kettlebell/pullover__kettlebell.png',
+  'Upright Row|kettlebell': '/exercise-images/kettlebell/upright_row__kettlebell.png',
+  'Dumbbell Box Squat|dumbbell': '/exercise-images/dumbbell/dumbbell_box_squat.png',
+  'Forward Lunge|kettlebell': '/exercise-images/kettlebell/forward_lunge__kettlebell.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
