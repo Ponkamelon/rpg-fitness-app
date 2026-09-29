@@ -608,6 +608,18 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Downward Dog to Cobra|bodyweight': '/exercise-images/bodyweight/downward_dog_to_cobra.png',
   'Dumbbell Goblet Hold|dumbbell': '/exercise-images/dumbbell/dumbbell_goblet_hold.png',
   'Dumbbell High-Knee March|dumbbell': '/exercise-images/dumbbell/dumbbell_high_knee_march.png',
+  // Batch 18B additions (4 of 5; "Fire Hydrant" held back — shows a
+  // straight-leg rear kick rather than a bent-knee lift out to the side,
+  // so it reads as a donkey kick / kickback rather than a fire hydrant.
+  // One-Arm Row is the missing dumbbell variant (kettlebell variant already
+  // covered since Batch 16), tagged __dumbbell to disambiguate. Logo in
+  // this batch is inconsistent (missing or a generic mark, not the new
+  // circular WODXP badge) — accepted for now per instruction, should be
+  // correct in the next batch per the updated MASTER_STYLE_PROMPT):
+  'One-Arm Row|dumbbell': '/exercise-images/dumbbell/one_arm_row__dumbbell.png',
+  'Dumbbell Hip Thrust|dumbbell': '/exercise-images/dumbbell/dumbbell_hip_thrust.png',
+  'Farmer Carry March|dumbbell': '/exercise-images/dumbbell/farmer_carry_march.png',
+  'Front Raise|dumbbell': '/exercise-images/dumbbell/front_raise.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
