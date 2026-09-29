@@ -593,6 +593,21 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Upright Row|kettlebell': '/exercise-images/kettlebell/upright_row__kettlebell.png',
   'Dumbbell Box Squat|dumbbell': '/exercise-images/dumbbell/dumbbell_box_squat.png',
   'Forward Lunge|kettlebell': '/exercise-images/kettlebell/forward_lunge__kettlebell.png',
+  // Batch 18A additions (8 of 10; "Child's Pose + Side Reach" held back —
+  // showed a raised-hip all-fours reach rather than sitting back onto the
+  // heels with a side reach, and didn't show a side component at all —
+  // and "Child's Pose" dropped as an already-covered duplicate (Batch 10).
+  // Note: this batch introduced a new circular WODXP badge logo instead of
+  // the flat wordmark used in batches 1-17 — approved as the new standard,
+  // see updated MASTER_STYLE_PROMPT):
+  'Dumbbell Shoulder Press|dumbbell': '/exercise-images/dumbbell/dumbbell_shoulder_press.png',
+  'Around the World|kettlebell': '/exercise-images/kettlebell/around_the_world.png',
+  'Dead-Stop Swing|kettlebell': '/exercise-images/kettlebell/dead_stop_swing.png',
+  'Deep Squat Hold|bodyweight': '/exercise-images/bodyweight/deep_squat_hold.png',
+  'Downward Dog|bodyweight': '/exercise-images/bodyweight/downward_dog.png',
+  'Downward Dog to Cobra|bodyweight': '/exercise-images/bodyweight/downward_dog_to_cobra.png',
+  'Dumbbell Goblet Hold|dumbbell': '/exercise-images/dumbbell/dumbbell_goblet_hold.png',
+  'Dumbbell High-Knee March|dumbbell': '/exercise-images/dumbbell/dumbbell_high_knee_march.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
