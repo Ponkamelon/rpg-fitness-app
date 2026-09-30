@@ -620,6 +620,20 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Dumbbell Hip Thrust|dumbbell': '/exercise-images/dumbbell/dumbbell_hip_thrust.png',
   'Farmer Carry March|dumbbell': '/exercise-images/dumbbell/farmer_carry_march.png',
   'Front Raise|dumbbell': '/exercise-images/dumbbell/front_raise.png',
+  // Batch 19A additions (10 of 15, all verified content-matched; new
+  // circular WODXP badge logo now correctly and consistently applied.
+  // Forward Lunge tagged __bodyweight since dumbbell/kettlebell variants
+  // already exist):
+  'Fast Feet|bodyweight': '/exercise-images/bodyweight/fast_feet.png',
+  'Fast Goblet Squats|dumbbell': '/exercise-images/dumbbell/fast_goblet_squats.png',
+  'Figure Four Stretch|bodyweight': '/exercise-images/bodyweight/figure_four_stretch.png',
+  'Forward Lunge|bodyweight': '/exercise-images/bodyweight/forward_lunge__bodyweight.png',
+  'Goblet Reverse Lunge|kettlebell': '/exercise-images/kettlebell/goblet_reverse_lunge.png',
+  'Goblet Squat Pry|kettlebell': '/exercise-images/kettlebell/goblet_squat_pry.png',
+  'Half-Kneeling Halo|kettlebell': '/exercise-images/kettlebell/half_kneeling_halo.png',
+  'Half-Kneeling Overhead Reach|dumbbell': '/exercise-images/dumbbell/half_kneeling_overhead_reach.png',
+  'Halo|kettlebell': '/exercise-images/kettlebell/halo.png',
+  'Heel Touches|bodyweight': '/exercise-images/bodyweight/heel_touches.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
