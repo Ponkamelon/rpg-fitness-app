@@ -634,6 +634,15 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Half-Kneeling Overhead Reach|dumbbell': '/exercise-images/dumbbell/half_kneeling_overhead_reach.png',
   'Halo|kettlebell': '/exercise-images/kettlebell/halo.png',
   'Heel Touches|bodyweight': '/exercise-images/bodyweight/heel_touches.png',
+  // Batch 19B additions (5 of 5, completing Batch 19; all verified
+  // content-matched, new circular WODXP badge logo consistent throughout.
+  // Hip Thrust tagged __kettlebell since the bodyweight variant already
+  // exists):
+  'High Plank|bodyweight': '/exercise-images/bodyweight/high_plank.png',
+  'Hip Thrust|kettlebell': '/exercise-images/kettlebell/hip_thrust__kettlebell.png',
+  'KB Front Hold|kettlebell': '/exercise-images/kettlebell/kb_front_hold.png',
+  'KB Glute Bridge Hold|kettlebell': '/exercise-images/kettlebell/kb_glute_bridge_hold.png',
+  'Knee Side Plank|bodyweight': '/exercise-images/bodyweight/knee_side_plank.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
