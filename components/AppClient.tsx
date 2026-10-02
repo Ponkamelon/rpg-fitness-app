@@ -643,6 +643,20 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'KB Front Hold|kettlebell': '/exercise-images/kettlebell/kb_front_hold.png',
   'KB Glute Bridge Hold|kettlebell': '/exercise-images/kettlebell/kb_glute_bridge_hold.png',
   'Knee Side Plank|bodyweight': '/exercise-images/bodyweight/knee_side_plank.png',
+  // Batch 20 additions (10 of 10, all verified content-matched, logo
+  // consistent. Reverse Lunge tagged __dumbbell/__kettlebell since the
+  // bodyweight variant already exists; Romanian Deadlift tagged __dumbbell
+  // since the kettlebell variant already exists):
+  'Lateral Lunge Stretch|dumbbell': '/exercise-images/dumbbell/lateral_lunge_stretch.png',
+  'Lateral Shuffle|bodyweight': '/exercise-images/bodyweight/lateral_shuffle.png',
+  'Lunge with Side Reach|bodyweight': '/exercise-images/bodyweight/lunge_with_side_reach.png',
+  'Open Book Rotation|bodyweight': '/exercise-images/bodyweight/open_book_rotation.png',
+  'Reverse Lunge|dumbbell': '/exercise-images/dumbbell/reverse_lunge__dumbbell.png',
+  'Reverse Lunge|kettlebell': '/exercise-images/kettlebell/reverse_lunge__kettlebell.png',
+  'Romanian Deadlift|dumbbell': '/exercise-images/dumbbell/romanian_deadlift__dumbbell.png',
+  'Romanian Deadlift Stretch|dumbbell': '/exercise-images/dumbbell/romanian_deadlift_stretch.png',
+  'Russian Swing|kettlebell': '/exercise-images/kettlebell/russian_swing.png',
+  'Scorpion|bodyweight': '/exercise-images/bodyweight/scorpion.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
