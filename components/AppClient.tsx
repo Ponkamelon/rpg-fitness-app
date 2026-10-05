@@ -657,6 +657,21 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Romanian Deadlift Stretch|dumbbell': '/exercise-images/dumbbell/romanian_deadlift_stretch.png',
   'Russian Swing|kettlebell': '/exercise-images/kettlebell/russian_swing.png',
   'Scorpion|bodyweight': '/exercise-images/bodyweight/scorpion.png',
+  // Batch 21 additions (10 of 10, all verified content-matched, single
+  // athlete per image, logo consistent. Filenames follow manifest.csv:
+  // Static Split Squat, Step-Up, Suitcase Carry and Suitcase Deadlift are
+  // tagged with a double-underscore equipment suffix because other
+  // equipment variants exist):
+  'Single-Leg Calf Raise|bodyweight': '/exercise-images/bodyweight/single_leg_calf_raise.png',
+  'Skater Steps|bodyweight': '/exercise-images/bodyweight/skater_steps.png',
+  'Squat + Knee Drive|bodyweight': '/exercise-images/bodyweight/squat_knee_drive.png',
+  'Squat to Press|dumbbell': '/exercise-images/dumbbell/squat_to_press.png',
+  'Static Split Squat|dumbbell': '/exercise-images/dumbbell/static_split_squat__dumbbell.png',
+  'Static Split Squat|kettlebell': '/exercise-images/kettlebell/static_split_squat__kettlebell.png',
+  'Step-Up|kettlebell': '/exercise-images/kettlebell/step_up__kettlebell.png',
+  'Suitcase Carry|kettlebell': '/exercise-images/kettlebell/suitcase_carry__kettlebell.png',
+  'Suitcase Deadlift|dumbbell': '/exercise-images/dumbbell/suitcase_deadlift__dumbbell.png',
+  'Suitcase Deadlift|kettlebell': '/exercise-images/kettlebell/suitcase_deadlift__kettlebell.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
