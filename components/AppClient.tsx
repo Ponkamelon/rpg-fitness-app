@@ -672,6 +672,21 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Suitcase Carry|kettlebell': '/exercise-images/kettlebell/suitcase_carry__kettlebell.png',
   'Suitcase Deadlift|dumbbell': '/exercise-images/dumbbell/suitcase_deadlift__dumbbell.png',
   'Suitcase Deadlift|kettlebell': '/exercise-images/kettlebell/suitcase_deadlift__kettlebell.png',
+  // Batch 22 additions (10 of 10, all verified content-matched, single
+  // athlete per image. Wall Shoulder Reach is shown from behind, so the chest
+  // logo is not visible. Filenames follow manifest.csv; Turkish Get-Up to
+  // Elbow carries a double-underscore kettlebell suffix because a dumbbell
+  // variant exists in the manifest):
+  'Thread the Needle|bodyweight': '/exercise-images/bodyweight/thread_the_needle.png',
+  'Wall Sit|bodyweight': '/exercise-images/bodyweight/wall_sit.png',
+  'Wall Shoulder Reach|bodyweight': '/exercise-images/bodyweight/wall_shoulder_reach.png',
+  'Squat to Reach|bodyweight': '/exercise-images/bodyweight/squat_to_reach.png',
+  'Hip Circles|bodyweight': '/exercise-images/bodyweight/hip_circles.png',
+  'Weighted Deep Squat Pry|dumbbell': '/exercise-images/dumbbell/weighted_deep_squat_pry.png',
+  'Dumbbell Goblet Reverse Lunge|dumbbell': '/exercise-images/dumbbell/dumbbell_goblet_reverse_lunge.png',
+  'Weighted Sit-Up|dumbbell': '/exercise-images/dumbbell/weighted_sit_up.png',
+  'Turkish Get-Up to Elbow|kettlebell': '/exercise-images/kettlebell/turkish_get_up_to_elbow__kettlebell.png',
+  'KB Seated Press|kettlebell': '/exercise-images/kettlebell/kb_seated_press.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
