@@ -687,6 +687,19 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Weighted Sit-Up|dumbbell': '/exercise-images/dumbbell/weighted_sit_up.png',
   'Turkish Get-Up to Elbow|kettlebell': '/exercise-images/kettlebell/turkish_get_up_to_elbow__kettlebell.png',
   'KB Seated Press|kettlebell': '/exercise-images/kettlebell/kb_seated_press.png',
+  // Batch 23 additions (10 of 10, all verified content-matched, single
+  // athlete per image, logo consistent. KB Tall-Kneeling Hold shows the same
+  // pose twice since it is a static hold. Filenames follow manifest.csv):
+  'Dumbbell Goblet Forward Lunge|dumbbell': '/exercise-images/dumbbell/dumbbell_goblet_forward_lunge.png',
+  'Dumbbell Overhead Hold|dumbbell': '/exercise-images/dumbbell/dumbbell_overhead_hold.png',
+  'Dumbbell Goblet March|dumbbell': '/exercise-images/dumbbell/dumbbell_goblet_march.png',
+  'Fast Side Steps|bodyweight': '/exercise-images/bodyweight/fast_side_steps.png',
+  'High Knee March|bodyweight': '/exercise-images/bodyweight/high_knee_march.png',
+  'KB Bent-Over Row|kettlebell': '/exercise-images/kettlebell/kb_bent_over_row.png',
+  'KB Deadlift to Goblet Hold|kettlebell': '/exercise-images/kettlebell/kb_deadlift_to_goblet_hold.png',
+  'KB Goblet Forward Lunge|kettlebell': '/exercise-images/kettlebell/kb_goblet_forward_lunge.png',
+  'KB Tall-Kneeling Hold|kettlebell': '/exercise-images/kettlebell/kb_tall_kneeling_hold.png',
+  'KB Seated Halo|kettlebell': '/exercise-images/kettlebell/kb_seated_halo.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
