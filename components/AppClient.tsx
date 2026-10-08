@@ -716,6 +716,10 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Bottom-Up Press|kettlebell': '/exercise-images/kettlebell/bottom_up_press.png',
   'Double KB Floor Press|kettlebell': '/exercise-images/kettlebell/double_kb_floor_press.png',
   'Double KB Clean and Jerk|kettlebell': '/exercise-images/kettlebell/double_kb_clean_and_jerk.png',
+  // Batch 24b: Skater Jump and Skater Hops added (lateral bound with double arrow).
+  // Push-Up and Bodyweight Squat keep their entries, the image files are replaced.
+  'Skater Jump|bodyweight': '/exercise-images/bodyweight/skater_jump.png',
+  'Skater Hops|bodyweight': '/exercise-images/bodyweight/skater_hops.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
