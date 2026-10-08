@@ -700,6 +700,22 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'KB Goblet Forward Lunge|kettlebell': '/exercise-images/kettlebell/kb_goblet_forward_lunge.png',
   'KB Tall-Kneeling Hold|kettlebell': '/exercise-images/kettlebell/kb_tall_kneeling_hold.png',
   'KB Seated Halo|kettlebell': '/exercise-images/kettlebell/kb_seated_halo.png',
+  // Batch 24 additions (13 verified content-matched, single athlete per image,
+  // circular logo. Broad Jump, Skater Jump and Skater Hops still missing.
+  // Filenames follow manifest.csv):
+  'Dumbbell Split Squat|dumbbell': '/exercise-images/dumbbell/dumbbell_split_squat.png',
+  'Dumbbell Front Rack Hold|dumbbell': '/exercise-images/dumbbell/dumbbell_front_rack_hold.png',
+  'Clean & Jerk|dumbbell': '/exercise-images/dumbbell/clean_and_jerk__dumbbell.png',
+  'Cossack Squat|bodyweight': '/exercise-images/bodyweight/cossack_squat__bodyweight.png',
+  'Deep Squat + Rotation|bodyweight': '/exercise-images/bodyweight/deep_squat_rotation.png',
+  'KB Front Rack Hold|kettlebell': '/exercise-images/kettlebell/kb_front_rack_hold.png',
+  'KB Goblet Split Squat|kettlebell': '/exercise-images/kettlebell/kb_goblet_split_squat.png',
+  'KB Goblet Lateral Lunge|kettlebell': '/exercise-images/kettlebell/kb_goblet_lateral_lunge.png',
+  'KB Deadlift March|kettlebell': '/exercise-images/kettlebell/kb_deadlift_march.png',
+  'Fire Hydrant|bodyweight': '/exercise-images/bodyweight/fire_hydrant.png',
+  'Bottom-Up Press|kettlebell': '/exercise-images/kettlebell/bottom_up_press.png',
+  'Double KB Floor Press|kettlebell': '/exercise-images/kettlebell/double_kb_floor_press.png',
+  'Double KB Clean and Jerk|kettlebell': '/exercise-images/kettlebell/double_kb_clean_and_jerk.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
