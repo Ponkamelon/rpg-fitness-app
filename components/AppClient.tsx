@@ -751,6 +751,27 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Hand-to-Hand Swing|kettlebell': '/exercise-images/kettlebell/hand_to_hand_swing.png',
   'Front-Foot Elevated Split Squat|dumbbell': '/exercise-images/dumbbell/front_foot_elevated_split_squat.png',
   'Goblet Squat + Rotation|dumbbell': '/exercise-images/dumbbell/goblet_squat_rotation__dumbbell.png',
+  // Batch 27 addition (edited: right figure mirrored so the lead leg alternates)
+  'Fast Alternating Lunges|bodyweight': '/exercise-images/bodyweight/fast_alternating_lunges.png',
+  // Batch 29 additions (17 new keys from 22 verified content-matched, single athlete, circular logo).
+  // Replacements of existing images keep their filenames and need no new keys.
+  'Figure 8|kettlebell': '/exercise-images/kettlebell/figure_8.png',
+  'Front-Rack Carry|kettlebell': '/exercise-images/kettlebell/front_rack_carry__kettlebell.png',
+  'Front-Rack Carry|dumbbell': '/exercise-images/dumbbell/front_rack_carry__dumbbell.png',
+  'Front-Rack Reverse Lunge|kettlebell': '/exercise-images/kettlebell/front_rack_reverse_lunge.png',
+  'Front-Rack Step-Up|kettlebell': '/exercise-images/kettlebell/front_rack_step_up.png',
+  'Half-Kneeling Press|dumbbell': '/exercise-images/dumbbell/half_kneeling_press__dumbbell.png',
+  'Half-Kneeling Windmill|dumbbell': '/exercise-images/dumbbell/half_kneeling_windmill.png',
+  'Hamstring Walkout|bodyweight': '/exercise-images/bodyweight/hamstring_walkout.png',
+  'Heel-Elevated Goblet Squat|dumbbell': '/exercise-images/dumbbell/heel_elevated_goblet_squat.png',
+  'Worlds Greatest Stretch|bodyweight': '/exercise-images/bodyweight/worlds_greatest_stretch.png',
+  'Dumbbell Arm Bar|dumbbell': '/exercise-images/dumbbell/dumbbell_arm_bar.png',
+  'Goblet Squat + Rotation|kettlebell': '/exercise-images/kettlebell/goblet_squat_rotation__kettlebell.png',
+  'Inchworm to Cobra|bodyweight': '/exercise-images/bodyweight/inchworm_to_cobra.png',
+  'KB Box Squat|kettlebell': '/exercise-images/kettlebell/kb_box_squat.png',
+  'Lateral Lunge|bodyweight': '/exercise-images/bodyweight/lateral_lunge__bodyweight.png',
+  'Lateral Lunge|kettlebell': '/exercise-images/kettlebell/lateral_lunge__kettlebell.png',
+  'One-Arm Floor Press|kettlebell': '/exercise-images/kettlebell/one_arm_floor_press.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
