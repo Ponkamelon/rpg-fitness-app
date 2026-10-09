@@ -738,6 +738,19 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Arm Bar|kettlebell': '/exercise-images/kettlebell/arm_bar.png',
   'Dumbbell Skater Lunge|dumbbell': '/exercise-images/dumbbell/dumbbell_skater_lunge.png',
   'Clean + Squat|kettlebell': '/exercise-images/kettlebell/clean_squat.png',
+  // Batch 26b: Dumbbell Swing redone (single dumbbell). Curtsy Lunge dumbbell still missing.
+  'Dumbbell Swing|dumbbell': '/exercise-images/dumbbell/dumbbell_swing.png',
+  // Batch 28 additions (9 verified content-matched, single athlete per image,
+  // circular logo. Fast Alternating Lunges rejected, both poses identical):
+  'Crab Bridge|bodyweight': '/exercise-images/bodyweight/crab_bridge.png',
+  'Crab Reach|bodyweight': '/exercise-images/bodyweight/crab_reach.png',
+  'Frogger|bodyweight': '/exercise-images/bodyweight/frogger.png',
+  'Front-Rack Squat|kettlebell': '/exercise-images/kettlebell/front_rack_squat.png',
+  'Gorilla Row|kettlebell': '/exercise-images/kettlebell/gorilla_row.png',
+  'Half-Kneeling Press|kettlebell': '/exercise-images/kettlebell/half_kneeling_press__kettlebell.png',
+  'Hand-to-Hand Swing|kettlebell': '/exercise-images/kettlebell/hand_to_hand_swing.png',
+  'Front-Foot Elevated Split Squat|dumbbell': '/exercise-images/dumbbell/front_foot_elevated_split_squat.png',
+  'Goblet Squat + Rotation|dumbbell': '/exercise-images/dumbbell/goblet_squat_rotation__dumbbell.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
