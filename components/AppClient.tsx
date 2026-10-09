@@ -720,6 +720,13 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   // Push-Up and Bodyweight Squat keep their entries, the image files are replaced.
   'Skater Jump|bodyweight': '/exercise-images/bodyweight/skater_jump.png',
   'Skater Hops|bodyweight': '/exercise-images/bodyweight/skater_hops.png',
+  // Batch 25: Sit-Up, Double Under, Jumping Jacks and Goblet Box Squat keep their
+  // entries (image files replaced). New entries below. Curtsy Lunge dumbbell and
+  // Crab Walk rejected, still missing.
+  'Alternating Clean|kettlebell': '/exercise-images/kettlebell/alternating_clean.png',
+  'Bent-Over Double Row|kettlebell': '/exercise-images/kettlebell/bent_over_double_row.png',
+  'Bottom-Up Hold|kettlebell': '/exercise-images/kettlebell/bottom_up_hold.png',
+  'Burpee without Push-Up|bodyweight': '/exercise-images/bodyweight/burpee_without_push_up.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
