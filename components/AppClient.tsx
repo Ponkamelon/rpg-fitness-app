@@ -727,6 +727,17 @@ const EXERCISE_ILLUSTRATION_IMAGES: Record<string, string> = {
   'Bent-Over Double Row|kettlebell': '/exercise-images/kettlebell/bent_over_double_row.png',
   'Bottom-Up Hold|kettlebell': '/exercise-images/kettlebell/bottom_up_hold.png',
   'Burpee without Push-Up|bodyweight': '/exercise-images/bodyweight/burpee_without_push_up.png',
+  // Batch 26 additions (8 verified content-matched, single athlete per image,
+  // circular logo. Dumbbell Swing (orange kettlebell shown) and Curtsy Lunge
+  // dumbbell (reads as reverse lunge) rejected, still missing):
+  'Crab Walk|bodyweight': '/exercise-images/bodyweight/crab_walk.png',
+  'Deadlift + High Pull|dumbbell': '/exercise-images/dumbbell/deadlift_high_pull.png',
+  'Fast Bodyweight Squats|bodyweight': '/exercise-images/bodyweight/fast_bodyweight_squats.png',
+  'Double Kettlebell RDL|kettlebell': '/exercise-images/kettlebell/double_kettlebell_rdl.png',
+  'Double Kettlebell Squat|kettlebell': '/exercise-images/kettlebell/double_kettlebell_squat.png',
+  'Arm Bar|kettlebell': '/exercise-images/kettlebell/arm_bar.png',
+  'Dumbbell Skater Lunge|dumbbell': '/exercise-images/dumbbell/dumbbell_skater_lunge.png',
+  'Clean + Squat|kettlebell': '/exercise-images/kettlebell/clean_squat.png',
 };
 
 /** The three fixed equipment-type logos — NOT exercise-specific, just one
